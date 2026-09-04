@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { insforge, authHelpers, db } from '@/lib/insforge'
 import { User, ShoppingBag, Search, Heart, MapPin, Settings, LogOut, Package, Clock, Star, Trash2, ShoppingCart, Eye, ArrowLeft, CreditCard, Truck, Check, X, LayoutDashboard, Tag, Layers, Image as ImageIcon, Calendar, Wrench, Headphones, Plus, Edit, Save, Award, Sparkles, Gift, Smartphone, Building2, QrCode, AlertTriangle, Upload, Shield, TrendingUp } from 'lucide-react'
-import LoadingScreen from '@/components/LoadingScreen'
 
 export default function AccountPage() {
   const [user, setUser] = useState<any>(null)
@@ -289,7 +288,15 @@ export default function AccountPage() {
   }
 
   if (loading) {
-    return <LoadingScreen message="Loading your account..." subMessage="Suhail Mobile Shop Raebareli • Best Mobile Store" />
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center font-rubik">
+        <div className="text-center">
+          <img src="/logo-final.png" alt="Suhail Mobile Shop" className="w-24 h-24 object-contain mx-auto rounded-xl bg-white" />
+          <p className="font-bold text-[14px] mt-3">Loading account...</p>
+          <div className="w-6 h-6 border-2 border-black/10 border-t-black rounded-full animate-spin mx-auto mt-2"></div>
+        </div>
+      </div>
+    )
   }
 
   const customerTabs = [
@@ -321,7 +328,7 @@ export default function AccountPage() {
           <div className="flex items-center gap-4">
             <button onClick={() => window.location.href = '/'} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20"><ArrowLeft size={18} /></button>
             <div className="flex items-center gap-3">
-              <img src="/logo-demo-2.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
+              <img src="/logo-final.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
               <div>
                 <h1 className="font-rubik font-black text-[16px] tracking-tight">My Account • {isAdmin ? 'Admin Access Enabled' : 'Customer'}</h1>
                 <p className="font-rubik text-[11px] text-white/60">{isAdmin ? 'Admin Panel Connected • Secure Access • Suhail Mobile Shop Raebareli' : 'Orders, Search History, Cart, Wishlist, Profile • Suhail Mobile Shop Raebareli'}</p>

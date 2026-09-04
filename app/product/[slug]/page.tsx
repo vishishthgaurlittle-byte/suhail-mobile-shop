@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { Search, User, ShoppingCart, Star, ArrowLeft, Check, Shield, Truck, Award, Package, Heart, Share2, Zap, Smartphone, Battery, Camera, Cpu, Monitor, Gift, X, LogOut } from 'lucide-react'
 import { insforge, db, authHelpers, REAL_PHONES_2026, REAL_ACCESSORIES_2026 } from '@/lib/insforge'
-import LoadingScreen from '@/components/LoadingScreen'
 
 export default function ProductPage() {
   const params = useParams()
@@ -153,7 +152,15 @@ export default function ProductPage() {
   }
 
   if (loading) {
-    return <LoadingScreen message="Loading product..." subMessage={slug} />
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center font-rubik">
+        <div className="text-center">
+          <img src="/logo-final.png" alt="Suhail Mobile Shop" className="w-32 h-32 object-contain mx-auto rounded-2xl bg-white" />
+          <p className="font-bold text-[14px] mt-4">Loading {slug}...</p>
+          <div className="w-8 h-8 border-2 border-black/10 border-t-black rounded-full animate-spin mx-auto mt-3"></div>
+        </div>
+      </div>
+    )
   }
 
   if (!product) {
@@ -181,7 +188,7 @@ export default function ProductPage() {
           <div className="flex items-center gap-4">
             <button onClick={() => window.location.href = '/'} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20"><ArrowLeft size={18} /></button>
             <div className="flex items-center gap-3">
-              <img src="/logo-demo-2.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
+              <img src="/logo-final.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
               <div>
                 <h1 className="font-bold text-[16px] tracking-tight leading-none">Suhail Mobile Shop</h1>
                 <p className="text-[11px] text-white/60">RAEBARELI • BEST MOBILE STORE SINCE 2015</p>
@@ -341,7 +348,7 @@ export default function ProductPage() {
       <footer className="bg-black text-white mt-12 py-8">
         <div className="max-w-[1440px] mx-auto px-4 md:px-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <img src="/logo-demo-2.png" alt="Logo" className="w-10 h-10 rounded-xl bg-white object-contain" />
+            <img src="/logo-final.png" alt="Logo" className="w-10 h-10 rounded-xl bg-white object-contain" />
             <span className="font-bold">Suhail Mobile Shop Raebareli • Since 2015</span>
           </div>
           <button onClick={() => window.location.href = '/'} className="bg-white text-black px-5 py-2 rounded-full font-bold text-[13px]">Back to Shop</button>

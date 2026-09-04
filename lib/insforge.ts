@@ -3,7 +3,7 @@
 import { createClient } from '@insforge/sdk'
 
 const insforgeUrl = process.env.NEXT_PUBLIC_INSFORGE_URL || 'https://md9tnq8u.eu-central.insforge.app'
-const insforgeAnonKey = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY || 'ik_cea11706f53ddfd47005611cd1814dca'
+const insforgeAnonKey = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY || ''
 
 export const insforge = createClient({
   baseUrl: insforgeUrl,
@@ -75,13 +75,12 @@ export const authHelpers = {
       // If InsForge fails, try localStorage fallback (fixes expiry bug)
       const localUser = this.getUserFromLocal()
       if (localUser) {
-        console.log('Using localStorage fallback for auth - InsForge session expired but local valid')
         return localUser
       }
       
       return null
     } catch (err) {
-      console.error('Auth check failed:', err)
+      // Silent auth fallback
       // Fallback to localStorage
       const localUser = this.getUserFromLocal()
       if (localUser) return localUser
@@ -159,7 +158,6 @@ export const db = {
         if (error) throw error
         return data || []
       } catch (e) {
-        console.error('Brands getAll error:', e)
         return []
       }
     },
@@ -219,12 +217,10 @@ export const db = {
         let result = data || []
         // If DB empty, return real phones fallback so data always present
         if (result.length === 0) {
-          console.log('Products DB empty, returning REAL_PHONES_2026 fallback - always present')
-          result = REAL_PHONES_2026
+            result = REAL_PHONES_2026
         }
         return result
       } catch (e) {
-        console.error('Products getAll error, returning real fallback:', e)
         return REAL_PHONES_2026
       }
     },
@@ -255,7 +251,6 @@ export const db = {
       
       const { data, error } = await insforge.database.from('products').update(updateData).eq('id', id).select()
       if (error) {
-        console.error('Product update error:', error)
         throw error
       }
       return data
@@ -263,7 +258,6 @@ export const db = {
     async delete(id: string) {
       const { error } = await insforge.database.from('products').delete().eq('id', id)
       if (error) {
-        console.error('Product delete error:', error)
         throw error
       }
     }
@@ -294,7 +288,6 @@ export const db = {
         }
         return result
       } catch (e) {
-        console.error('Orders getAll error, checking localStorage global:', e)
         if (typeof window !== 'undefined') {
           try {
             return JSON.parse(localStorage.getItem('suhail_orders_global') || localStorage.getItem('suhail_orders') || '[]')
@@ -334,7 +327,6 @@ export const db = {
       }
       const { data, error } = await insforge.database.from('orders').insert(fixedOrder).select()
       if (error) {
-        console.error('Order create error, will fallback to localStorage:', error)
         throw error
       }
       return data
@@ -345,7 +337,6 @@ export const db = {
         if (error) throw error
         return data
       } catch (e) {
-        console.error('Update status error, updating localStorage fallback:', e)
         // Update localStorage as fallback
         if (typeof window !== 'undefined') {
           try {
@@ -419,7 +410,6 @@ export const db = {
         
         return customers
       } catch (e) {
-        console.error('Customers getAll error:', e)
         // Fallback to localStorage customers
         if (typeof window !== 'undefined') {
           try {
@@ -471,7 +461,6 @@ export const db = {
         
         return true
       } catch (e) {
-        console.error('Customer delete error:', e)
         throw e
       }
     }
@@ -530,7 +519,6 @@ export const db = {
         }
         return result
       } catch (e) {
-        console.error('Repair tickets error:', e)
         if (typeof window !== 'undefined') {
           try {
             return JSON.parse(localStorage.getItem('suhail_repair_tickets') || '[]')
@@ -619,12 +607,10 @@ export const db = {
         if (error) throw error
         let result = data || []
         if (result.length === 0) {
-          console.log('Accessories DB empty, returning REAL_ACCESSORIES_2026 fallback')
           result = REAL_ACCESSORIES_2026
         }
         return result
       } catch (e) {
-        console.error('Accessories error, returning real fallback:', e)
         return REAL_ACCESSORIES_2026
       }
     },
@@ -676,7 +662,6 @@ export const db = {
         }
         return data
       } catch (e) {
-        console.error('Settings set error:', e)
         throw e
       }
     },

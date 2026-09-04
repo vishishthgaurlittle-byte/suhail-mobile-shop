@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { insforge, authHelpers } from '@/lib/insforge'
 import { LayoutDashboard, Package, ShoppingCart, Users, Image, Settings, Tag, Layers, CreditCard, Calendar, Wrench, Headphones, LogOut, Menu, X, Store } from 'lucide-react'
-import LoadingScreen from '@/components/LoadingScreen'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null)
@@ -79,7 +78,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (loading) {
-    return <LoadingScreen message="Loading Admin Panel..." subMessage="Suhail Mobile Shop Raebareli • Secure Access" />
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center font-rubik">
+        <div className="text-center">
+          <img src="/logo-final.png" alt="Suhail Mobile Shop" className="w-24 h-24 object-contain mx-auto rounded-xl bg-white" />
+          <p className="font-bold text-[14px] mt-3">Loading Admin...</p>
+          <div className="w-6 h-6 border-2 border-black/10 border-t-black rounded-full animate-spin mx-auto mt-2"></div>
+        </div>
+      </div>
+    )
   }
 
   if (!isAdmin) {
@@ -96,7 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className={`fixed inset-y-0 left-0 z-50 w-[300px] bg-black text-white transform transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <img src="/logo-demo-2.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
+            <img src="/logo-final.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
             <div>
               <h1 className="font-rubik font-black text-[16px] tracking-tight">Suhail Mobile Shop</h1>
               <p className="font-rubik text-[11px] text-white/60">ADMIN PANEL • RAEBARELI • SECURE</p>

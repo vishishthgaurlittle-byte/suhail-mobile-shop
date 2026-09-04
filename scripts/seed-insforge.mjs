@@ -1,7 +1,7 @@
 // @ts-nocheck
 // Seed real products in InsForge - Latest local market Raebareli 2026
 const INSFORGE_URL = process.env.NEXT_PUBLIC_INSFORGE_URL || 'https://md9tnq8u.eu-central.insforge.app'
-const API_KEY = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY || 'ik_cea11706f53ddfd47005611cd1814dca'
+const API_KEY = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY || process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY || ''
 
 console.log('🌱 Seeding real products to InsForge:', INSFORGE_URL)
 

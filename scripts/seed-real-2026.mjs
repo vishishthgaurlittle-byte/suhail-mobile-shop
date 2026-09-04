@@ -1,6 +1,6 @@
 // Seed InsForge with 9 real phones + 10 real accessories - Always present
 const url = process.env.NEXT_PUBLIC_INSFORGE_URL || 'https://md9tnq8u.eu-central.insforge.app'
-const anonKey = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY || 'ik_cea11706f53ddfd47005611cd1814dca'
+const anonKey = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY || process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY || ''
 
 const REAL_PHONES = [
   { id: 'prod_s25ultra_real', name: 'Samsung Galaxy S25 Ultra 12GB/512GB Titanium Black', slug: 'samsung-galaxy-s25-ultra-12-512-titanium-black', brand_id: 'brand_samsung', category_id: 'cat_smartphones', short_desc: 'Galaxy AI, S Pen, 200MP, Snapdragon 8 Elite', description: 'Latest Samsung Galaxy S25 Ultra with Galaxy AI, S Pen, 200MP, SD 8 Elite, 5000mAh, 45W. Available in Raebareli.', price: 129999, original_price: 139999, stock: 15, sku: 'SAM-S25U-512-BLK-REAL', is_featured: true, is_new_launch: true, thumbnail: 'https://images.unsplash.com/photo-1610945264803-c22b62d2a7b3?w=600', rating: 4.9, review_count: 234, status: 'active' },

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { Search, User, Heart, ShoppingCart, Truck, Shield, MessageCircle, CreditCard, Star, Menu, X, LogOut, Sparkles, Zap, Award, ArrowRight, Check, Wrench, Calendar, Package, Phone, MapPin, Instagram, Clock, Gift, Smartphone, Upload, QrCode, Building2, AlertTriangle } from 'lucide-react'
 import { insforge, db, authHelpers } from '@/lib/insforge'
 import { PAYMENT_MOCK_DATA, validateUTR, validateScreenshot, generateUPILink } from '@/lib/payment'
-import LoadingScreen, { MiniLoading } from '@/components/LoadingScreen'
 
 // Real products available in Raebareli local market - Latest 2026
 const realProducts = [
@@ -34,7 +33,6 @@ const preorderPhones = [
 const brands = ['Apple', 'SAMSUNG', 'OnePlus', 'Xiaomi', 'OPPO', 'VIVO', 'realme', 'Google', 'NOTHING']
 
 export default function Home() {
-  const [initialLoading, setInitialLoading] = useState(true)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [dynamicProducts, setDynamicProducts] = useState<any[]>([])
   const [dynamicAccessories, setDynamicAccessories] = useState<any[]>([])
@@ -72,8 +70,6 @@ export default function Home() {
   ]
 
   useEffect(() => {
-    // Initial splash loading animation with approved Loading Demo 3 + Logo Demo 2 same to same
-    const splashTimer = setTimeout(() => setInitialLoading(false), 1800)
     const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % heroSlides.length), 4000)
     // Load real products from InsForge - so new products added by admin automatically have dedicated pages
     const loadRealData = async () => {
@@ -88,7 +84,6 @@ export default function Home() {
     }
     loadRealData()
     return () => {
-      clearTimeout(splashTimer)
       clearInterval(timer)
     }
   }, [])
@@ -101,11 +96,9 @@ export default function Home() {
         userData = await authHelpers.getCurrentUserRobust()
         if (userData) {
           setUser(userData)
-          console.log('Auth restored:', userData.email)
           // Check if admin for header switch My Account -> Admin Panel
           const adminCheck = await authHelpers.checkIsAdmin(userData).catch(() => authHelpers.isAdminEmail(userData.email))
           setIsAdmin(adminCheck)
-          console.log('Is admin header:', adminCheck)
         }
         
         // Also check URL for login required
@@ -115,7 +108,7 @@ export default function Home() {
           setAuthMode('login')
         }
       } catch (err) {
-        console.error('Auth check failed:', err)
+        // Auth check silent
       }
       
       // FIXED: Load cart from localStorage - per-user isolation
@@ -438,7 +431,7 @@ export default function Home() {
       const { error } = await insforge.database.from('orders').insert(orderData)
       if (error) {
         // If table structure different, try alternative
-        console.error('Order insert error:', error)
+        // Order insert error handled via localStorage fallback
         // Save to localStorage per-user for isolation
         const ordersKey = user.id ? `suhail_orders_${user.id}` : 'suhail_orders'
         const localOrders = JSON.parse(localStorage.getItem(ordersKey) || localStorage.getItem('suhail_orders') || '[]')
@@ -477,7 +470,7 @@ export default function Home() {
       showToastMessage(`✅ Order ${orderId} placed! Full payment proof submitted. Staff will verify UTR: ${utrNumber} and call you soon! 🎉`)
       
     } catch (err: any) {
-      console.error(err)
+      // Order error handled
       showToastMessage('Order placed locally! Staff will contact you for payment verification. UTR: ' + utrNumber)
       // Save locally per-user even if InsForge fails - isolated
       const ordersKey = user?.id ? `suhail_orders_${user.id}` : 'suhail_orders'
@@ -515,10 +508,6 @@ export default function Home() {
     }
   }
 
-  if (initialLoading) {
-    return <LoadingScreen />
-  }
-
   return (
     <div className="min-h-screen bg-white font-rubik">
       {/* Top Bar - Rubik */}
@@ -536,7 +525,7 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden p-2 hover:bg-white/10 rounded-full"><Menu size={20} /></button>
             <div className="flex items-center gap-3">
-              <img src="/logo-demo-2.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
+              <img src="/logo-final.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
               <div>
                 <h1 className="font-rubik font-bold text-[16px] tracking-tight leading-none">Suhail Mobile Shop</h1>
                 <p className="font-rubik text-[11px] text-white/60 font-medium tracking-wide">RAEBARELI • UPI/BANK DIRECT • FULL PAYMENT</p>
@@ -755,7 +744,7 @@ export default function Home() {
         <div className="max-w-[1440px] mx-auto px-4 md:px-6 py-10 grid md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <img src="/logo-demo-2.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
+              <img src="/logo-final.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
               <span className="font-rubik font-bold text-[16px] tracking-tight">Suhail Mobile Shop</span>
             </div>
             <p className="font-rubik text-[13px] text-white/60 leading-relaxed">Beside Canara Bank, Chandapur Kothi, Kuchery Road, Rae Bareli - 229001, UP. Open 10AM-9:30PM. UPI/Bank Direct Payment, No Razorpay.</p>
@@ -1042,7 +1031,7 @@ export default function Home() {
                   <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-3.5 bg-[#F5F5F7] rounded-xl font-rubik text-[14px] focus:outline-none focus:ring-2 focus:ring-black" required />
                   <button type="submit" disabled={loading} className="w-full bg-black text-white py-3.5 rounded-full font-rubik font-bold text-[14px]">{loading ? 'Logging in...' : 'Login with Email →'}</button>
                   <div className="relative my-4"><div className="absolute inset-0 flex items-center"><div className="w-full border-t"></div></div><div className="relative flex justify-center"><span className="bg-white px-3 font-rubik text-[11px] font-bold text-black/30 uppercase">Or</span></div></div>
-                  <button type="button" onClick={handleGoogleLogin} className="w-full border border-black/10 py-3.5 rounded-full font-rubik font-bold text-[14px] flex items-center justify-center gap-2"><img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" /> Continue with Google</button>
+                  <button type="button" onClick={handleGoogleLogin} className="w-full border border-black/10 py-3.5 rounded-full font-rubik font-bold text-[14px] flex items-center justify-center gap-2"><img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" /> Continue with Google</button>
                   <div className="flex justify-between text-xs mt-3"><button type="button" onClick={() => setAuthMode('signup')} className="font-rubik font-bold text-black">Create account</button><span className="font-rubik text-black/40">Best Mobile Store • UPI/Bank Direct</span></div>
                 </form>
               )}
@@ -1054,7 +1043,7 @@ export default function Home() {
                   <input type="password" placeholder="Password min 6 chars" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-3.5 bg-[#F5F5F7] rounded-xl font-rubik text-[14px]" required minLength={6} />
                   <button type="submit" disabled={loading} className="w-full bg-black text-white py-3.5 rounded-full font-rubik font-bold text-[14px]">{loading ? 'Creating...' : 'Create Account • OTP →'}</button>
                   <button type="button" onClick={() => setAuthMode('login')} className="w-full font-rubik text-xs text-black/60">Already have account? Login</button>
-                  <button type="button" onClick={handleGoogleLogin} className="w-full border border-black/10 py-3 rounded-full font-rubik font-bold text-[13px] flex items-center justify-center gap-2"><img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" /> Signup with Google</button>
+                  <button type="button" onClick={handleGoogleLogin} className="w-full border border-black/10 py-3 rounded-full font-rubik font-bold text-[13px] flex items-center justify-center gap-2"><img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" /> Signup with Google</button>
                 </form>
               )}
 

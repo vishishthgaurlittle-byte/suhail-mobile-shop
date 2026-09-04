@@ -30,3 +30,11 @@ INSFORGE_INTEGRATION_PLAN.md
 PROJECT_PLAN.md
 scripts/init-db.mjs
 scripts/seed.mjs
+# Additional secrets and env - deep sweep fix
+FULL_FINAL_ENV.env
+REMAINING_ENV_TO_ADD.env
+DEEP_SWEEP_AUDIT_FIXES.md
+.env.example.bak
+public/loading-demo-*.png
+public/logo-demo-*.png
+app/logo-demo/
