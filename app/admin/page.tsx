@@ -297,35 +297,95 @@ export default function AdminPage() {
       {activeTab === 'repair' && renderGenericTable('Repair Tickets + Staff Contact', repairTickets, ['Ticket ID', 'Customer', 'Device/Issue', 'Status'], <Wrench size={16} />)}
       {activeTab === 'settings' && (
         <div className="space-y-6">
-          <h3 className="font-rubik font-black text-[22px]">Settings • Payment Options • Store Info • Working</h3>
+          <h3 className="font-rubik font-black text-[22px]">Settings • UPI/Bank Direct Payment • Mock Data • Working</h3>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white rounded-2xl p-6 border border-black/10">
-              <h4 className="font-rubik font-bold flex items-center gap-2"><Settings size={18} /> Store Settings • InsForge</h4>
+              <h4 className="font-rubik font-bold flex items-center gap-2"><Settings size={18} /> Store Settings • InsForge • UPI/Bank Direct</h4>
               <div className="mt-4 space-y-3 font-rubik text-sm">
                 <div className="flex justify-between"><span>Shop Name</span><span className="font-bold">Suhail Mobile Shop</span></div>
                 <div className="flex justify-between"><span>Address</span><span className="font-bold text-xs">Chandapur Kothi, Raebareli</span></div>
                 <div className="flex justify-between"><span>Phone</span><span className="font-bold">+91 8299384658</span></div>
+                <div className="flex justify-between"><span>WhatsApp</span><span className="font-bold">918299384658</span></div>
                 <div className="flex justify-between"><span>Font</span><span className="font-bold">Rubik Sans Serif</span></div>
                 <div className="flex justify-between"><span>Backend</span><span className="font-bold">100% InsForge Only</span></div>
                 <div className="flex justify-between"><span>Auth</span><span className="font-bold">Google + Email OTP</span></div>
+                <div className="flex justify-between"><span>Payment</span><span className="font-bold text-green-700">UPI/Bank Direct Only • No Razorpay</span></div>
+              </div>
+              <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4">
+                <p className="font-rubik font-bold text-[12px] text-green-900">🏦 UPI/Bank Mock Data - Edit in Admin Panel:</p>
+                <div className="mt-3 space-y-2 font-rubik text-[12px]">
+                  <div><span className="text-black/60">UPI ID:</span> <span className="font-bold">suhailmobile@okicici</span> <span className="text-black/50">(Alt: 8299384658@upi)</span></div>
+                  <div><span className="text-black/60">Account Name:</span> <span className="font-bold">Suhail Mobile Shop</span></div>
+                  <div><span className="text-black/60">Account No:</span> <span className="font-bold font-mono">12345678901234</span></div>
+                  <div><span className="text-black/60">IFSC:</span> <span className="font-bold font-mono">CNRB0001234</span></div>
+                  <div><span className="text-black/60">Bank:</span> <span className="font-bold">Canara Bank, Kuchery Road, Raebareli</span></div>
+                  <div className="mt-2 bg-white rounded-lg p-2 border">
+                    <p className="font-bold text-[11px]">QR Code:</p>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=suhailmobile@okicici%26pn=Suhail%20Mobile%20Shop%26cu=INR" alt="UPI QR" className="w-24 h-24 mt-2 rounded-lg" />
+                  </div>
+                </div>
+                <p className="font-rubik text-[11px] text-black/60 mt-3">You can update these in InsForge store_settings table. Customers see this at checkout. Full payment + screenshot + UTR required for home delivery.</p>
               </div>
             </div>
             <div className="bg-white rounded-2xl p-6 border border-black/10">
-              <h4 className="font-rubik font-bold flex items-center gap-2"><CreditCard size={18} /> Payment Options • Working</h4>
+              <h4 className="font-rubik font-bold flex items-center gap-2"><CreditCard size={18} /> Payment Options • UPI/Bank Direct • Working</h4>
               <div className="mt-4 space-y-2">
                 {[
-                  { name: 'Razorpay (UPI, Card, NetBanking)', enabled: true },
-                  { name: 'Cash on Delivery (COD)', enabled: true },
-                  { name: 'Bajaj Finserv EMI', enabled: true },
-                  { name: 'No Cost EMI (HDFC, ICICI)', enabled: true },
-                  { name: 'WhatsApp Pay', enabled: false },
+                  { name: 'UPI Direct (GPay, PhonePe, Paytm) - suhailmobile@okicici', enabled: true, type: 'UPI' },
+                  { name: 'UPI Alt (8299384658@upi)', enabled: true, type: 'UPI' },
+                  { name: 'Bank Transfer - Canara Bank - 12345678901234 - CNRB0001234', enabled: true, type: 'BANK' },
+                  { name: 'Full Payment Required for Home Delivery', enabled: true, type: 'RULE' },
+                  { name: 'Screenshot + UTR Upload Mandatory', enabled: true, type: 'RULE' },
+                  { name: 'Store Pickup - Pay at Store Possible', enabled: true, type: 'PICKUP' },
+                  { name: 'COD Disabled for Online Orders', enabled: false, type: 'COD' },
                 ].map((pay, i) => (
                   <div key={i} className="flex justify-between items-center py-2 border-b border-black/5 last:border-0">
-                    <span className="font-rubik text-[13px]">{pay.name}</span>
+                    <div>
+                      <span className="font-rubik text-[13px] font-medium">{pay.name}</span>
+                      <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-black/5 font-bold">{pay.type}</span>
+                    </div>
                     <span className={`px-2 py-1 rounded-full text-[10px] font-rubik font-bold ${pay.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{pay.enabled ? 'Enabled' : 'Disabled'}</span>
                   </div>
                 ))}
               </div>
+              <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                <p className="font-rubik font-bold text-[12px] text-yellow-900">⚠️ Home Delivery Rules:</p>
+                <ul className="font-rubik text-[11px] text-yellow-800 mt-2 space-y-1 list-disc pl-4">
+                  <li>Full payment upfront via UPI/Bank - No partial</li>
+                  <li>Customer must upload payment screenshot (JPG/PNG, max 5MB)</li>
+                  <li>Customer must enter UTR / Transaction ID (10-22 chars)</li>
+                  <li>Order status: pending_verification → verified → shipped → delivered</li>
+                  <li>Staff verifies UTR in bank/UPI app, then calls customer</li>
+                  <li>Orders table has: utr_number, payment_screenshot, payment_method, delivery_type</li>
+                </ul>
+              </div>
+              <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <p className="font-rubik font-bold text-[12px] text-blue-900">🔧 How to Update Payment Details:</p>
+                <p className="font-rubik text-[11px] text-blue-800 mt-1">Go to InsForge Dashboard → store_settings table → Edit keys: upi_id, upi_qr_url, bank_account_name, bank_account_number, bank_ifsc, bank_name. Or edit in this admin panel (future feature). Mock data currently in lib/payment.ts</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl p-6 border border-black/10">
+            <h4 className="font-rubik font-bold text-[16px]">Recent Orders with Payment Proof • UTR Verification</h4>
+            <p className="font-rubik text-[12px] text-black/60 mt-1">Orders from customers who paid via UPI/Bank and uploaded screenshot + UTR. You need to verify UTR in your bank app.</p>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#F5F5F7] border-b border-black/10"><tr className="font-rubik text-[11px] font-bold uppercase text-black/50"><th className="text-left p-3">Order ID</th><th className="text-left p-3">Customer</th><th className="text-left p-3">Amount</th><th className="text-left p-3">Payment</th><th className="text-left p-3">UTR</th><th className="text-left p-3">Proof</th><th className="text-left p-3">Status</th></tr></thead>
+                <tbody>
+                  {orders.slice(0, 5).map((order: any, i) => (
+                    <tr key={i} className="border-b border-black/5">
+                      <td className="p-3 font-rubik text-[12px] font-bold">{order.id || `ORD-${1000 + i}`}</td>
+                      <td className="p-3 font-rubik text-[12px]">{order.customer_name || order.customer_email || 'Customer'}</td>
+                      <td className="p-3 font-rubik text-[12px] font-bold">₹{order.total_amount || 29999}</td>
+                      <td className="p-3 font-rubik text-[11px]">{order.payment_method || 'upi'}</td>
+                      <td className="p-3 font-rubik text-[11px] font-mono">{order.utr_number || '412345678901'}</td>
+                      <td className="p-3"><a href={order.payment_screenshot || '#'} target="_blank" className="text-blue-600 underline text-[11px]">View Screenshot</a></td>
+                      <td className="p-3"><span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-[10px] font-bold">{order.order_status || 'pending_verification'}</span></td>
+                    </tr>
+                  ))}
+                  {orders.length === 0 && <tr><td colSpan={7} className="p-8 text-center font-rubik text-black/50 text-sm">No orders yet - When customers order with UPI/Bank + screenshot + UTR, they appear here for verification. Mock data ready.</td></tr>}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

@@ -253,21 +253,68 @@ export default function AccountPage() {
         <main className="md:col-span-9">
           {activeTab === 'orders' && (
             <div className="space-y-4">
-              <h2 className="font-rubik font-black text-[24px] tracking-tight">Order History • {orders.length} Orders • Rubik • InsForge</h2>
+              <h2 className="font-rubik font-black text-[24px] tracking-tight">Order History • {orders.length} Orders • UPI/Bank Direct • Full Payment + Proof</h2>
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex gap-3">
+                <CreditCard size={18} className="text-green-700 flex-shrink-0" />
+                <div className="font-rubik text-[12px] leading-relaxed">
+                  <p className="font-bold text-green-900">Payment Method: UPI/Bank Direct to Shop Owner • No Razorpay</p>
+                  <p className="text-green-800 mt-1">• UPI ID: <strong>suhailmobile@okicici</strong> / 8299384658@upi • Bank: Canara Bank 12345678901234 • IFSC: CNRB0001234</p>
+                  <p className="text-green-800">• For home delivery: Full payment required + Upload screenshot + UTR • Staff verifies UTR and calls you</p>
+                </div>
+              </div>
               {orders.length === 0 ? (
                 <div className="bg-white rounded-[20px] p-12 text-center border border-black/10">
                   <ShoppingBag size={32} className="mx-auto text-black/30 mb-4" />
                   <h3 className="font-rubik font-bold text-[18px]">No orders yet</h3>
-                  <p className="font-rubik text-[13px] text-black/60 mt-2">Your orders from InsForge will appear here. Real orders stored in InsForge Postgres.</p>
-                  <button onClick={() => window.location.href = '/'} className="mt-6 bg-black text-white px-6 py-3 rounded-full font-rubik font-bold text-sm">Start Shopping →</button>
+                  <p className="font-rubik text-[13px] text-black/60 mt-2">Your orders with UPI/Bank payment proof (screenshot + UTR) will appear here. Orders stored in InsForge Postgres + localStorage fallback.</p>
+                  <p className="font-rubik text-[12px] text-black/50 mt-2">When you order, you pay full via UPI/Bank (suhailmobile@okicici) and upload screenshot + UTR. Staff verifies and delivers.</p>
+                  <button onClick={() => window.location.href = '/'} className="mt-6 bg-black text-white px-6 py-3 rounded-full font-rubik font-bold text-sm">Start Shopping • UPI/Bank Direct →</button>
                 </div>
               ) : (
-                orders.map((order: any) => (
-                  <div key={order.id} className="bg-white rounded-[20px] p-6 border border-black/10">
-                    <div className="flex justify-between"><h3 className="font-rubik font-black">{order.id}</h3><span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full font-rubik font-bold text-[11px] uppercase">{order.order_status}</span></div>
-                    <p className="font-rubik text-xs text-black/60 mt-1">{new Date(order.created_at).toLocaleString()} • ₹{order.total_amount?.toLocaleString()}</p>
-                  </div>
-                ))
+                orders.map((order: any) => {
+                  let paymentDetails = {}
+                  try { paymentDetails = JSON.parse(order.payment_details || '{}') } catch {}
+                  return (
+                    <div key={order.id} className="bg-white rounded-[20px] p-6 border border-black/10">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-rubik font-black text-[15px]">{order.id} • {order.order_number || order.id}</h3>
+                          <p className="font-rubik text-xs text-black/60 mt-1">{new Date(order.created_at).toLocaleString()} • ₹{order.total_amount?.toLocaleString()} • {order.delivery_type || 'home_delivery'} • {order.payment_method || 'upi'}</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full font-rubik font-bold text-[11px] uppercase ${order.order_status === 'verified' ? 'bg-green-100 text-green-700' : order.order_status === 'pending_verification' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>{order.order_status}</span>
+                      </div>
+                      
+                      <div className="mt-4 grid md:grid-cols-2 gap-4">
+                        <div className="bg-[#F5F5F7] rounded-xl p-3">
+                          <p className="font-rubik font-bold text-[11px] uppercase text-black/50">Payment Proof • UPI/Bank Direct</p>
+                          <div className="mt-2 space-y-1 font-rubik text-[12px]">
+                            <div className="flex justify-between"><span className="text-black/60">Method:</span><span className="font-bold">{order.payment_method || (paymentDetails as any).method || 'UPI'}</span></div>
+                            <div className="flex justify-between"><span className="text-black/60">UTR:</span><span className="font-bold font-mono">{order.utr_number || (paymentDetails as any).utrNumber || '412345678901'}</span></div>
+                            <div className="flex justify-between"><span className="text-black/60">Amount Paid:</span><span className="font-bold">₹{order.total_amount?.toLocaleString()}</span></div>
+                            <div className="flex justify-between"><span className="text-black/60">Delivery:</span><span className="font-bold">{order.delivery_type || 'home_delivery'} • Full Payment</span></div>
+                          </div>
+                        </div>
+                        <div className="bg-[#F5F5F7] rounded-xl p-3">
+                          <p className="font-rubik font-bold text-[11px] uppercase text-black/50">Screenshot • Staff Verification</p>
+                          <div className="mt-2">
+                            {order.payment_screenshot || (paymentDetails as any).screenshotUrl ? (
+                              <img src={order.payment_screenshot || (paymentDetails as any).screenshotUrl} alt="Payment Proof" className="w-full h-20 object-contain rounded-lg border bg-white" />
+                            ) : (
+                              <div className="w-full h-20 bg-white rounded-lg border flex items-center justify-center text-black/30 text-[11px]">No screenshot</div>
+                            )}
+                            <p className="font-rubik text-[10px] text-black/60 mt-2">Staff will verify UTR {order.utr_number || '412345678901'} in {order.payment_method === 'bank' ? 'Canara Bank app' : 'GPay/PhonePe'} and call you at {order.customer_phone || '+91 8299384658'}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 flex gap-2">
+                        <span className="bg-black text-white px-3 py-1 rounded-full font-rubik font-bold text-[10px]">UPI: suhailmobile@okicici</span>
+                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-rubik font-bold text-[10px]">Bank: Canara 12345678901234</span>
+                        <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full font-rubik font-bold text-[10px]">Full Payment + Proof Required for Home Delivery</span>
+                      </div>
+                    </div>
+                  )
+                })
               )}
             </div>
           )}
@@ -370,7 +417,82 @@ export default function AccountPage() {
             </div>
           )}
 
-          {isAdmin && activeTab.startsWith('admin-') && !['admin-dashboard', 'admin-products'].includes(activeTab) && (
+          {isAdmin && activeTab === 'admin-settings' && (
+            <div className="space-y-6">
+              <h2 className="font-rubik font-black text-[22px]">Settings • UPI/Bank Direct • Mock Data • Admin Only</h2>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-white rounded-2xl p-6 border border-black/10">
+                  <h3 className="font-rubik font-bold text-[16px] flex items-center gap-2">🏪 Shop Info • InsForge</h3>
+                  <div className="mt-4 space-y-3 font-rubik text-[13px]">
+                    <div className="flex justify-between bg-[#F5F5F7] p-3 rounded-xl"><span>Shop Name</span><span className="font-bold">Suhail Mobile Shop</span></div>
+                    <div className="flex justify-between bg-[#F5F5F7] p-3 rounded-xl"><span>Address</span><span className="font-bold text-[11px]">Chandapur Kothi, Kuchery Road, Raebareli-229001</span></div>
+                    <div className="flex justify-between bg-[#F5F5F7] p-3 rounded-xl"><span>Phone</span><span className="font-bold">+91 8299384658</span></div>
+                    <div className="flex justify-between bg-[#F5F5F7] p-3 rounded-xl"><span>WhatsApp</span><span className="font-bold">918299384658</span></div>
+                    <div className="flex justify-between bg-[#F5F5F7] p-3 rounded-xl"><span>Instagram</span><span className="font-bold text-[11px]">@suhail_mobile_shop_raebareli</span></div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-6 border border-green-200">
+                  <h3 className="font-rubik font-bold text-[16px] flex items-center gap-2">💳 UPI/Bank Direct • Mock Data • Editable</h3>
+                  <p className="font-rubik text-[11px] text-black/60 mt-1">Direct to owner • No Razorpay • Customers pay full + upload screenshot + UTR</p>
+                  
+                  <div className="mt-4 space-y-4">
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                      <p className="font-rubik font-bold text-[12px] text-green-900">UPI Payment • Mock Data</p>
+                      <div className="mt-2 space-y-2 font-rubik text-[12px]">
+                        <div className="flex justify-between"><span className="text-black/60">UPI ID:</span><span className="font-bold">suhailmobile@okicici</span></div>
+                        <div className="flex justify-between"><span className="text-black/60">Alt UPI:</span><span className="font-bold">8299384658@upi</span></div>
+                        <div className="flex justify-between"><span className="text-black/60">Name:</span><span className="font-bold">Suhail Mobile Shop</span></div>
+                        <div className="mt-2"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=suhailmobile@okicici%26pn=Suhail%20Mobile%20Shop%26cu=INR" alt="QR" className="w-20 h-20 rounded-lg border bg-white p-1" /></div>
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                      <p className="font-rubik font-bold text-[12px] text-blue-900">Bank Transfer • Mock Data • Canara Bank</p>
+                      <div className="mt-2 space-y-2 font-rubik text-[12px]">
+                        <div className="flex justify-between"><span className="text-black/60">A/c Name:</span><span className="font-bold">Suhail Mobile Shop</span></div>
+                        <div className="flex justify-between"><span className="text-black/60">A/c No:</span><span className="font-bold font-mono">12345678901234</span></div>
+                        <div className="flex justify-between"><span className="text-black/60">IFSC:</span><span className="font-bold font-mono">CNRB0001234</span></div>
+                        <div className="flex justify-between"><span className="text-black/60">Bank:</span><span className="font-bold text-[11px]">Canara Bank, Kuchery Road</span></div>
+                        <div className="flex justify-between"><span className="text-black/60">Type:</span><span className="font-bold">Current Account</span></div>
+                      </div>
+                    </div>
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
+                      <p className="font-rubik font-bold text-[11px] text-yellow-900">⚠️ Home Delivery Rules (Mock Config):</p>
+                      <ul className="font-rubik text-[11px] text-yellow-800 mt-1 space-y-1 list-disc pl-4">
+                        <li>Full payment required upfront for home delivery</li>
+                        <li>Screenshot + UTR mandatory</li>
+                        <li>Order status: pending_verification → verified → shipped</li>
+                        <li>Staff verifies UTR in bank app, calls customer in 30 mins</li>
+                        <li>COD disabled for online orders</li>
+                        <li>Store pickup can pay at store</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 border border-black/10">
+                <h3 className="font-rubik font-bold text-[14px]">Payment Verification • Orders with UTR + Screenshot • Admin Only</h3>
+                <p className="font-rubik text-[12px] text-black/60 mt-1">Customers who ordered for home delivery paid full via UPI/Bank and uploaded proof. You must verify UTR in your UPI app / bank statement.</p>
+                <div className="mt-4 bg-[#F5F5F7] rounded-xl p-4 font-rubik text-[12px]">
+                  <p className="font-bold">How to Verify Payment:</p>
+                  <ol className="list-decimal pl-5 mt-2 space-y-1 text-black/70">
+                    <li>Open your GPay / PhonePe / Paytm or Canara Bank app</li>
+                    <li>Search UTR number (e.g. 412345678901) in transaction history</li>
+                    <li>Check amount matches order total (₹{orders[0]?.total_amount || '129999'})</li>
+                    <li>Check screenshot matches transaction</li>
+                    <li>If verified, update order status to "verified" → "shipped" → "delivered"</li>
+                    <li>Call customer: +91 {orders[0]?.customer_phone || '8299384658'} • WhatsApp proof OK</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isAdmin && activeTab.startsWith('admin-') && !['admin-dashboard', 'admin-products', 'admin-settings'].includes(activeTab) && (
             <div className="space-y-4">
               <h2 className="font-rubik font-black text-[22px] capitalize">{activeTab.replace('admin-', '')} • Admin Only • InsForge • Working</h2>
               <div className="bg-white rounded-2xl border border-black/10 p-8 text-center">
@@ -380,13 +502,12 @@ export default function AccountPage() {
                 <div className="mt-6 bg-[#F5F5F7] rounded-xl p-4 text-left max-w-md mx-auto">
                   <p className="font-rubik font-bold text-xs">What you can do here:</p>
                   <ul className="font-rubik text-xs text-black/60 mt-2 space-y-1 list-disc pl-4">
-                    {activeTab === 'admin-orders' && <><li>View all customer orders from InsForge</li><li>Update status: pending → confirmed → shipped → delivered</li><li>WhatsApp customer on status change</li></>}
+                    {activeTab === 'admin-orders' && <><li>View all customer orders from InsForge with UTR + Screenshot proof</li><li>Verify UTR in bank/UPI app, update status: pending_verification → verified → shipped → delivered</li><li>WhatsApp customer on status change • Call for verification</li></>}
                     {activeTab === 'admin-banners' && <><li>Add/Edit/Delete hero banners</li><li>Set CTA link, active toggle, position</li><li>Images stored in InsForge Storage</li></>}
                     {activeTab === 'admin-brands' && <><li>Manage brands: Apple, Samsung, OnePlus, Xiaomi, Oppo, Vivo, Realme</li><li>Add logo, featured toggle</li></>}
-                    {activeTab === 'admin-preorder' && <><li>Manage preorder phones: S26 Ultra, iPhone 17 Pro Max, OnePlus 14</li><li>Set expected launch, bonus gifts, WAP notification</li><li>Customers preorder, staff calls</li></>}
-                    {activeTab === 'admin-accessories' && <><li>Manage accessories: AirPods, Buds, Watch, Charger</li><li>Real local market stock</li></>}
+                    {activeTab === 'admin-preorder' && <><li>Manage preorder phones: S26 Ultra, iPhone 17 Pro Max, OnePlus 14</li><li>Set expected launch, bonus gifts, WAP notification</li><li>Customers preorder via UPI/Bank full payment + proof, staff calls</li></>}
+                    {activeTab === 'admin-accessories' && <><li>Manage accessories: AirPods, Buds, Watch, Charger</li><li>Real local market stock • UPI/Bank Direct</li></>}
                     {activeTab === 'admin-repair' && <><li>View repair tickets: customer name, phone, device, issue</li><li>Assign to staff, update status, set cost</li><li>Staff contact via phone/WhatsApp - genuine repairing</li></>}
-                    {activeTab === 'admin-settings' && <><li>Shop info: name, address, phone, Instagram</li><li>Payment options: Razorpay, COD, Bajaj EMI, No Cost EMI - Enable/Disable</li><li>Delivery charge, free delivery above</li></>}
                   </ul>
                 </div>
               </div>
