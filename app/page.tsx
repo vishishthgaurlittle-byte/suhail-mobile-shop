@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Search, User, Heart, ShoppingCart, Truck, Shield, MessageCircle, CreditCard, Star, Menu, X, LogOut, Sparkles, Zap, Award, ArrowRight, Check, Wrench, Calendar, Package, Phone, MapPin, Instagram, Clock, Gift, Smartphone, Upload, QrCode, Building2, AlertTriangle } from 'lucide-react'
 import { insforge, db, authHelpers } from '@/lib/insforge'
 import { PAYMENT_MOCK_DATA, validateUTR, validateScreenshot, generateUPILink } from '@/lib/payment'
+import LoadingScreen, { MiniLoading } from '@/components/LoadingScreen'
 
 // Real products available in Raebareli local market - Latest 2026
 const realProducts = [
@@ -33,7 +34,10 @@ const preorderPhones = [
 const brands = ['Apple', 'SAMSUNG', 'OnePlus', 'Xiaomi', 'OPPO', 'VIVO', 'realme', 'Google', 'NOTHING']
 
 export default function Home() {
+  const [initialLoading, setInitialLoading] = useState(true)
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [dynamicProducts, setDynamicProducts] = useState<any[]>([])
+  const [dynamicAccessories, setDynamicAccessories] = useState<any[]>([])
   const [cartItems, setCartItems] = useState<any[]>([])
   const [showAuth, setShowAuth] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'verify'>('login')
@@ -68,8 +72,25 @@ export default function Home() {
   ]
 
   useEffect(() => {
+    // Initial splash loading animation with approved Loading Demo 3 + Logo Demo 2 same to same
+    const splashTimer = setTimeout(() => setInitialLoading(false), 1800)
     const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % heroSlides.length), 4000)
-    return () => clearInterval(timer)
+    // Load real products from InsForge - so new products added by admin automatically have dedicated pages
+    const loadRealData = async () => {
+      try {
+        const [prodData, accData] = await Promise.all([
+          db.products.getAll().catch(() => []),
+          db.accessories.getAll().catch(() => [])
+        ])
+        if (prodData && prodData.length > 0) setDynamicProducts(prodData)
+        if (accData && accData.length > 0) setDynamicAccessories(accData)
+      } catch {}
+    }
+    loadRealData()
+    return () => {
+      clearTimeout(splashTimer)
+      clearInterval(timer)
+    }
   }, [])
 
   useEffect(() => {
@@ -494,6 +515,10 @@ export default function Home() {
     }
   }
 
+  if (initialLoading) {
+    return <LoadingScreen />
+  }
+
   return (
     <div className="min-h-screen bg-white font-rubik">
       {/* Top Bar - Rubik */}
@@ -501,7 +526,7 @@ export default function Home() {
         <span className="inline-flex items-center gap-2">
           <Sparkles size={14} className="text-yellow-400" />
           <span className="hidden md:inline font-rubik">Weekend Dhamaka: Full Payment for Home Delivery • UPI/Bank Direct • Upload Proof • </span>
-          <span className="font-rubik font-bold">📞 +91 8299384658 • UPI: suhailmobile@okicici • Bank: Canara • Rubik • InsForge Only</span>
+          <span className="font-rubik font-bold">📞 +91 8299384658 • UPI: suhailmobile@okicici • Bank: Canara • Suhail Mobile Shop Raebareli</span>
         </span>
       </div>
 
@@ -511,7 +536,7 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <button onClick={() => setMobileMenu(!mobileMenu)} className="md:hidden p-2 hover:bg-white/10 rounded-full"><Menu size={20} /></button>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center font-rubik font-black text-xl">S</div>
+              <img src="/logo-demo-2.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
               <div>
                 <h1 className="font-rubik font-bold text-[16px] tracking-tight leading-none">Suhail Mobile Shop</h1>
                 <p className="font-rubik text-[11px] text-white/60 font-medium tracking-wide">RAEBARELI • UPI/BANK DIRECT • FULL PAYMENT</p>
@@ -556,15 +581,12 @@ export default function Home() {
           </div>
         </div>
 
-        <nav className={`${mobileMenu ? 'block' : 'hidden md:block'} bg-[#111] border-t border-white/10`}>
+        {/* Category filter pills REMOVED as requested - dedicated product pages now handle categories */}
+        {mobileMenu && (
+        <nav className={`block md:hidden bg-[#111] border-t border-white/10`}>
           <div className="max-w-[1440px] mx-auto px-4 md:px-6 py-3 flex flex-wrap gap-2 text-[13px] font-rubik font-medium">
-            {['Apple', 'Samsung', 'OnePlus', 'Xiaomi', 'Oppo', 'Vivo', 'Realme', 'Accessories', 'Preorder', 'Repair'].map(cat => (
-              <button key={cat} onClick={() => setActiveTab(cat.toLowerCase())} className={`px-4 py-2 rounded-full transition ${activeTab === cat.toLowerCase() ? 'bg-white text-black font-bold' : 'bg-white/10 text-white/80 hover:bg-white/20'}`}>
-                {cat === 'Repair' ? '🔧 ' : cat === 'Preorder' ? '📅 ' : ''}{cat}
-              </button>
-            ))}
             {/* Mobile: Show My Account / Admin Panel */}
-            <div className="w-full md:hidden mt-3 pt-3 border-t border-white/10 flex gap-2">
+            <div className="w-full flex gap-2">
               {user ? (
                 isAdmin ? (
                   <button onClick={handleAdminPanelClick} className="flex-1 bg-[#FF3B30] text-white px-4 py-2.5 rounded-full font-rubik font-black text-[12px] flex items-center justify-center gap-2"><Shield size={14}/> Admin Panel • {user.email?.split('@')[0]}</button>
@@ -577,6 +599,7 @@ export default function Home() {
             </div>
           </div>
         </nav>
+        )}
       </header>
 
       {/* Hero */}
@@ -604,22 +627,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trust Bar - Updated with UPI/Bank */}
-      <section className="max-w-[1440px] mx-auto px-4 md:px-6 mt-5">
-        <div className="bg-[#F5F5F7] rounded-2xl py-3.5 px-6 flex flex-wrap justify-between gap-4 border border-black/5">
-          {[
-            { icon: QrCode, title: 'UPI Direct', desc: 'suhailmobile@okicici • Instant' },
-            { icon: Building2, title: 'Bank Direct', desc: 'Canara Bank • Full Payment' },
-            { icon: Upload, title: 'Upload Proof', desc: 'Screenshot + UTR Required' },
-            { icon: Truck, title: 'Home Delivery', desc: 'After Payment Verify' },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center"><item.icon size={18} /></div>
-              <div><p className="font-rubik font-bold text-[13px]">{item.title}</p><p className="font-rubik text-[11px] text-black/60">{item.desc}</p></div>
-            </div>
-          ))}
-        </div>
-      </section>
+      
 
       {/* Brand Marquee */}
       <section className="max-w-[1440px] mx-auto px-4 md:px-6 mt-6 overflow-hidden py-3 border-y border-black/10">
@@ -633,128 +641,43 @@ export default function Home() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="font-rubik font-black text-[26px] md:text-[36px] leading-[0.9] tracking-tight">Latest Phones in Raebareli<br /><span className="text-black/30 font-rubik">UPI/Bank Direct • Full Payment for Home Delivery</span></h2>
-            <p className="font-rubik text-[13px] text-black/60 mt-2">Rubik Font • InsForge Backend • UPI: {PAYMENT_MOCK_DATA.upi.id} • Bank: {PAYMENT_MOCK_DATA.bank.bankName} • Upload Proof</p>
+            <p className="font-rubik text-[13px] text-black/60 mt-2">Suhail Mobile Shop Raebareli • UPI: {PAYMENT_MOCK_DATA.upi.id} • Bank: {PAYMENT_MOCK_DATA.bank.bankName} • Upload Proof</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
-          {realProducts.map(p => (
-            <div key={p.id} className="bg-white border border-black/10 rounded-[20px] p-3 card-hover group">
-              <div className="relative bg-[#F5F5F7] rounded-[16px] p-4 h-[200px] md:h-[240px] flex items-center justify-center overflow-hidden">
-                <img src={p.image} alt={p.name} className="max-h-full object-contain group-hover:scale-105 transition duration-500" />
-                <span className="absolute top-2 left-2 bg-black text-white text-[10px] font-rubik font-bold px-2.5 py-1 rounded-full">{p.tag}</span>
-                {p.discount && <span className="absolute top-2 right-2 bg-[#FF3B30] text-white text-[10px] font-rubik font-bold px-2 py-1 rounded-full">-{p.discount}%</span>}
-                <span className="absolute bottom-2 left-2 bg-green-500 text-white text-[9px] font-rubik font-bold px-2 py-1 rounded-full">Stock: {p.stock} • UPI/Bank Direct</span>
+          {(dynamicProducts.length > 0 ? dynamicProducts : realProducts).map((p: any) => {
+            const prodSlug = p.slug || p.id
+            const prodImage = p.thumbnail || p.image || p.image_url
+            const prodPrice = p.price
+            const prodOriginal = p.original_price || p.original
+            const prodDiscount = prodOriginal ? Math.round((1 - prodPrice / prodOriginal) * 100) : p.discount
+            const prodSpecs = typeof p.specs === 'object' ? `${p.specs?.ram || ''} ${p.specs?.storage || ''} ${p.specs?.processor || ''}`.trim() || p.short_desc || '' : p.specs || p.short_desc || ''
+            return (
+            <div key={p.id} className="bg-white border border-black/10 rounded-[20px] p-3 card-hover group cursor-pointer hover:shadow-xl transition-all">
+              <div onClick={() => window.location.href = `/product/${prodSlug}`} className="relative bg-[#F5F5F7] rounded-[16px] p-4 h-[200px] md:h-[240px] flex items-center justify-center overflow-hidden">
+                <img src={prodImage} alt={p.name} className="max-h-full object-contain group-hover:scale-105 transition duration-500" />
+                <span className="absolute top-2 left-2 bg-black text-white text-[10px] font-rubik font-bold px-2.5 py-1 rounded-full">{p.tag || (p.is_new_launch ? 'New Launch' : p.is_best_seller ? 'Best Seller' : 'In Stock')}</span>
+                {prodDiscount > 0 && <span className="absolute top-2 right-2 bg-[#FF3B30] text-white text-[10px] font-rubik font-bold px-2 py-1 rounded-full">-{prodDiscount}%</span>}
+                <span className="absolute bottom-2 left-2 bg-green-500 text-white text-[9px] font-rubik font-bold px-2 py-1 rounded-full">Stock: {p.stock} • View Details →</span>
               </div>
               <div className="mt-3">
-                <h3 className="font-rubik font-bold text-[14px] leading-tight tracking-tight">{p.name}</h3>
-                <p className="font-rubik text-[11px] text-black/50 mt-1">{p.variant}</p>
-                <p className="font-rubik text-[10px] text-black/40 mt-1">{p.specs}</p>
-                <div className="flex items-center gap-1 mt-2"><Star size={12} className="fill-black" /><span className="font-rubik font-bold text-xs">{p.rating}</span><span className="font-rubik text-[11px] text-black/50">({p.reviews})</span></div>
-                <div className="flex items-baseline gap-2 mt-2"><span className="font-rubik font-black text-[18px] tracking-tight">₹{p.price.toLocaleString()}</span>{p.original && <span className="font-rubik text-xs text-black/40 line-through">₹{p.original.toLocaleString()}</span>}</div>
-                <button onClick={() => addToCart(p)} className="w-full mt-3 bg-black text-white py-2.5 rounded-full font-rubik font-bold text-[13px] hover:bg-zinc-800">Add to Cart • UPI/Bank</button>
+                <h3 onClick={() => window.location.href = `/product/${prodSlug}`} className="font-rubik font-bold text-[14px] leading-tight tracking-tight hover:text-blue-600 cursor-pointer line-clamp-2">{p.name}</h3>
+                <p className="font-rubik text-[11px] text-black/50 mt-1 line-clamp-1">{p.variant || p.short_desc || ''}</p>
+                <p className="font-rubik text-[10px] text-black/40 mt-1 line-clamp-1">{prodSpecs}</p>
+                <div className="flex items-center gap-1 mt-2"><Star size={12} className="fill-black" /><span className="font-rubik font-bold text-xs">{p.rating || 4.8}</span><span className="font-rubik text-[11px] text-black/50">({p.review_count || p.reviews || '234'})</span></div>
+                <div className="flex items-baseline gap-2 mt-2"><span className="font-rubik font-black text-[18px] tracking-tight">₹{prodPrice?.toLocaleString()}</span>{prodOriginal && <span className="font-rubik text-xs text-black/40 line-through">₹{prodOriginal?.toLocaleString()}</span>}</div>
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => window.location.href = `/product/${prodSlug}`} className="flex-1 bg-white border border-black text-black py-2.5 rounded-full font-rubik font-bold text-[12px] hover:bg-black hover:text-white transition">View Details</button>
+                  <button onClick={() => addToCart({...p, image: prodImage})} className="flex-1 bg-black text-white py-2.5 rounded-full font-rubik font-bold text-[12px] hover:bg-zinc-800">Add to Cart</button>
+                </div>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       </section>
 
-      {/* UPI/Bank Payment Info Banner */}
-      <section className="max-w-[1440px] mx-auto px-4 md:px-6 mt-10">
-        <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border border-green-200 rounded-[24px] p-6 md:p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-green-600 text-white rounded-2xl flex items-center justify-center"><CreditCard size={24} /></div>
-            <div>
-              <h2 className="font-rubik font-black text-[22px] md:text-[28px] tracking-tight text-green-900">Direct Payment to Shop • UPI / Bank • Full Payment for Home Delivery</h2>
-              <p className="font-rubik text-[13px] text-green-700 mt-1">Pay directly to owner • No Razorpay • Upload screenshot + UTR for verification • Staff will verify and deliver</p>
-            </div>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* UPI */}
-            <div className="bg-white rounded-2xl p-5 border border-green-200 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center"><QrCode size={20} className="text-green-700" /></div>
-                <div>
-                  <h3 className="font-rubik font-black text-[16px]">UPI Payment • Instant • Preferred</h3>
-                  <p className="font-rubik text-[11px] text-black/60">Google Pay, PhonePe, Paytm, BHIM</p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="bg-[#F5F5F7] rounded-xl p-3 flex justify-between items-center">
-                  <div>
-                    <p className="font-rubik text-[11px] text-black/50 uppercase font-bold">UPI ID</p>
-                    <p className="font-rubik font-black text-[15px] mt-1">{PAYMENT_MOCK_DATA.upi.id}</p>
-                    <p className="font-rubik text-[11px] text-black/60 mt-1">Alt: {PAYMENT_MOCK_DATA.upi.alternateId}</p>
-                  </div>
-                  <button onClick={() => { navigator.clipboard.writeText(PAYMENT_MOCK_DATA.upi.id); showToastMessage('UPI ID Copied! ' + PAYMENT_MOCK_DATA.upi.id) }} className="bg-black text-white px-3 py-2 rounded-full font-rubik font-bold text-[11px]">Copy</button>
-                </div>
-                <div className="flex gap-3">
-                  <img src={PAYMENT_MOCK_DATA.upi.qrCodeUrl} alt="UPI QR" className="w-24 h-24 rounded-xl border" />
-                  <div className="flex-1 font-rubik text-[12px] leading-relaxed">
-                    <p className="font-bold">How to Pay via UPI:</p>
-                    <p className="text-black/70 mt-1">1. Open GPay/PhonePe/Paytm</p>
-                    <p className="text-black/70">2. Pay to UPI ID or Scan QR</p>
-                    <p className="text-black/70">3. Enter full amount ₹</p>
-                    <p className="text-black/70">4. Take screenshot</p>
-                    <p className="text-black/70">5. Copy UTR/Transaction ID</p>
-                    <p className="font-bold text-green-700 mt-2">6. Upload proof in checkout</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bank */}
-            <div className="bg-white rounded-2xl p-5 border border-blue-200 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center"><Building2 size={20} className="text-blue-700" /></div>
-                <div>
-                  <h3 className="font-rubik font-black text-[16px]">Bank Transfer • NEFT/IMPS</h3>
-                  <p className="font-rubik text-[11px] text-black/60">{PAYMENT_MOCK_DATA.bank.bankName} • Raebareli</p>
-                </div>
-              </div>
-              <div className="space-y-2 font-rubik text-[13px]">
-                <div className="flex justify-between bg-[#F5F5F7] rounded-xl p-3">
-                  <div>
-                    <p className="text-[11px] text-black/50 uppercase font-bold">Account Name</p>
-                    <p className="font-bold mt-1">{PAYMENT_MOCK_DATA.bank.accountName}</p>
-                  </div>
-                  <button onClick={() => { navigator.clipboard.writeText(PAYMENT_MOCK_DATA.bank.accountName); showToastMessage('Copied!') }} className="text-[11px] font-bold underline">Copy</button>
-                </div>
-                <div className="flex justify-between bg-[#F5F5F7] rounded-xl p-3">
-                  <div>
-                    <p className="text-[11px] text-black/50 uppercase font-bold">Account Number</p>
-                    <p className="font-bold font-mono mt-1">{PAYMENT_MOCK_DATA.bank.accountNumber}</p>
-                  </div>
-                  <button onClick={() => { navigator.clipboard.writeText(PAYMENT_MOCK_DATA.bank.accountNumber); showToastMessage('Account No Copied!') }} className="text-[11px] font-bold underline">Copy</button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-[#F5F5F7] rounded-xl p-3">
-                    <p className="text-[11px] text-black/50 uppercase font-bold">IFSC</p>
-                    <p className="font-bold font-mono mt-1">{PAYMENT_MOCK_DATA.bank.ifsc}</p>
-                  </div>
-                  <div className="bg-[#F5F5F7] rounded-xl p-3">
-                    <p className="text-[11px] text-black/50 uppercase font-bold">Branch</p>
-                    <p className="font-bold text-[11px] mt-1">{PAYMENT_MOCK_DATA.bank.branch}</p>
-                  </div>
-                </div>
-                <p className="text-[11px] text-black/60 mt-2">After transfer, upload screenshot + UTR. Staff verifies in 10 mins.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex gap-3">
-            <AlertTriangle size={20} className="text-yellow-700 flex-shrink-0 mt-0.5" />
-            <div className="font-rubik text-[12px] leading-relaxed">
-              <p className="font-black text-yellow-900">⚠️ Important for Home Delivery / Online Orders:</p>
-              <p className="text-yellow-800 mt-1">• <strong>FULL PAYMENT REQUIRED</strong> upfront for home delivery — No COD for online orders</p>
-              <p className="text-yellow-800">• You <strong>MUST upload payment screenshot + UTR number</strong> as proof — Order verified only after proof</p>
-              <p className="text-yellow-800">• Staff will verify UTR in bank/UPI app and call you within 30 mins</p>
-              <p className="text-yellow-800">• For store pickup, you can pay at store, but advance UPI/Bank booking recommended for stock hold</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      
 
       {/* Preorder Zone */}
       <section className="max-w-[1440px] mx-auto px-4 md:px-6 mt-12">
@@ -783,21 +706,26 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Accessories */}
+      {/* Accessories - Dynamic from InsForge + dedicated pages */}
       <section className="max-w-[1440px] mx-auto px-4 md:px-6 mt-10">
-        <h2 className="font-rubik font-black text-[22px] md:text-[28px] tracking-tight">Accessories • Latest in Stock</h2>
-        <p className="font-rubik text-[12px] text-black/60">Genuine accessories • UPI/Bank Direct Payment • Admin managed • InsForge storage</p>
+        <h2 className="font-rubik font-black text-[22px] md:text-[28px] tracking-tight">Accessories • Latest in Stock • Dedicated Pages</h2>
+        <p className="font-rubik text-[12px] text-black/60">Genuine accessories • Click for dedicated page with specs • Admin managed • Auto pages</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
-          {accessories.map(acc => (
-            <div key={acc.id} className="bg-[#F5F5F7] rounded-2xl p-4 flex gap-3 items-center hover:bg-gray-100 transition">
-              <img src={acc.image} alt={acc.name} className="w-16 h-16 object-contain bg-white rounded-xl p-2" />
-              <div>
-                <h3 className="font-rubik font-bold text-[13px] leading-tight">{acc.name}</h3>
-                <p className="font-rubik text-[11px] text-black/50">{acc.category} • {acc.brand}</p>
-                <p className="font-rubik font-black text-[14px] mt-1">₹{acc.price.toLocaleString()}</p>
+          {(dynamicAccessories.length > 0 ? dynamicAccessories : accessories).map((acc: any) => {
+            const accSlug = acc.slug || acc.id
+            const accImage = acc.image_url || acc.image || acc.thumbnail
+            const accPrice = acc.price
+            return (
+            <div key={acc.id} onClick={() => window.location.href = `/product/${accSlug}`} className="bg-[#F5F5F7] rounded-2xl p-4 flex gap-3 items-center hover:bg-gray-100 transition cursor-pointer hover:shadow-lg group">
+              <img src={accImage} alt={acc.name} className="w-16 h-16 object-contain bg-white rounded-xl p-2 group-hover:scale-105 transition" />
+              <div className="flex-1">
+                <h3 className="font-rubik font-bold text-[13px] leading-tight group-hover:text-blue-600">{acc.name}</h3>
+                <p className="font-rubik text-[11px] text-black/50">{acc.category} • {acc.brand || acc.brand_id}</p>
+                <p className="font-rubik font-black text-[14px] mt-1">₹{accPrice?.toLocaleString()}</p>
+                <p className="font-rubik text-[10px] text-blue-600 font-bold mt-1">View Details →</p>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       </section>
 
@@ -827,7 +755,7 @@ export default function Home() {
         <div className="max-w-[1440px] mx-auto px-4 md:px-6 py-10 grid md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center font-rubik font-black text-xl">S</div>
+              <img src="/logo-demo-2.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
               <span className="font-rubik font-bold text-[16px] tracking-tight">Suhail Mobile Shop</span>
             </div>
             <p className="font-rubik text-[13px] text-white/60 leading-relaxed">Beside Canara Bank, Chandapur Kothi, Kuchery Road, Rae Bareli - 229001, UP. Open 10AM-9:30PM. UPI/Bank Direct Payment, No Razorpay.</p>
@@ -865,7 +793,7 @@ export default function Home() {
             </ul>
           </div>
           <div>
-            <h4 className="font-rubik font-bold text-[13px] uppercase tracking-wide mb-4">Tech Stack • Rubik + InsForge Only</h4>
+            <h4 className="font-rubik font-bold text-[13px] uppercase tracking-wide mb-4">Tech Stack • Suhail Mobile Shop Raebareli</h4>
             <div className="bg-white/10 rounded-2xl p-4 font-rubik text-[11px] leading-relaxed space-y-1">
               <p>✅ Font: Rubik Sans Serif (Figma best)</p>
               <p>✅ Backend: 100% InsForge Only (No Turso)</p>
@@ -879,7 +807,7 @@ export default function Home() {
           </div>
         </div>
         <div className="border-t border-white/10 py-4 text-center font-rubik text-[11px] text-white/30">
-          © 2026 Suhail Mobile Shop Raebareli • UPI/Bank Direct • Full Payment for Home Delivery • Screenshot + UTR Required • Rubik Font • InsForge Only
+          © 2026 Best Mobile Store • UPI/Bank Direct • Full Payment for Home Delivery • Screenshot + UTR Required • Best Mobile Store Raebareli
         </div>
       </footer>
 
@@ -1115,7 +1043,7 @@ export default function Home() {
                   <button type="submit" disabled={loading} className="w-full bg-black text-white py-3.5 rounded-full font-rubik font-bold text-[14px]">{loading ? 'Logging in...' : 'Login with Email →'}</button>
                   <div className="relative my-4"><div className="absolute inset-0 flex items-center"><div className="w-full border-t"></div></div><div className="relative flex justify-center"><span className="bg-white px-3 font-rubik text-[11px] font-bold text-black/30 uppercase">Or</span></div></div>
                   <button type="button" onClick={handleGoogleLogin} className="w-full border border-black/10 py-3.5 rounded-full font-rubik font-bold text-[14px] flex items-center justify-center gap-2"><img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" /> Continue with Google</button>
-                  <div className="flex justify-between text-xs mt-3"><button type="button" onClick={() => setAuthMode('signup')} className="font-rubik font-bold text-black">Create account</button><span className="font-rubik text-black/40">InsForge • Rubik • UPI/Bank Direct</span></div>
+                  <div className="flex justify-between text-xs mt-3"><button type="button" onClick={() => setAuthMode('signup')} className="font-rubik font-bold text-black">Create account</button><span className="font-rubik text-black/40">Best Mobile Store • UPI/Bank Direct</span></div>
                 </form>
               )}
 

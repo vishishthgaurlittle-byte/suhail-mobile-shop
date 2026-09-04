@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { insforge, authHelpers } from '@/lib/insforge'
 import { LayoutDashboard, Package, ShoppingCart, Users, Image, Settings, Tag, Layers, CreditCard, Calendar, Wrench, Headphones, LogOut, Menu, X, Store } from 'lucide-react'
+import LoadingScreen from '@/components/LoadingScreen'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null)
@@ -78,15 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center font-rubik">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="font-rubik font-bold">Checking Admin Access... InsForge • Rubik • Working</p>
-          <p className="font-rubik text-xs text-black/60 mt-2">Verifying admin@suhailmobile.com • is_admin check via profiles table</p>
-        </div>
-      </div>
-    )
+    return <LoadingScreen message="Loading Admin Panel..." subMessage="Suhail Mobile Shop Raebareli • Secure Access" />
   }
 
   if (!isAdmin) {
@@ -103,15 +96,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className={`fixed inset-y-0 left-0 z-50 w-[300px] bg-black text-white transform transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center font-rubik font-black text-xl">S</div>
+            <img src="/logo-demo-2.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
             <div>
               <h1 className="font-rubik font-black text-[16px] tracking-tight">Suhail Mobile Shop</h1>
-              <p className="font-rubik text-[11px] text-white/60">ADMIN PANEL • RUBIK • INSFORGE ONLY</p>
+              <p className="font-rubik text-[11px] text-white/60">ADMIN PANEL • RAEBARELI • SECURE</p>
             </div>
           </div>
           <div className="mt-4 bg-white/10 rounded-xl p-3">
             <p className="font-rubik font-bold text-[13px]">{user?.email || 'Admin'}</p>
-            <p className="font-rubik text-[11px] text-white/60">InsForge Auth • Google + Email OTP • Verified</p>
+            <p className="font-rubik text-[11px] text-white/60">Suhail Mobile Shop Raebareli • Since 2015</p>
           </div>
         </div>
 
@@ -135,7 +128,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button onClick={async () => { await authHelpers.signOutRobust(); window.location.href = '/' }} className="w-full flex items-center gap-2 px-4 py-2.5 bg-white/10 rounded-xl font-rubik font-semibold text-[13px] hover:bg-white/15">
             <LogOut size={16} /> Logout • Back to Shop
           </button>
-          <p className="font-rubik text-[10px] text-white/30 mt-3 text-center">Fixed Auth • No Expiry • UPI/Bank Edit • Edit/Delete Working ✅</p>
+          <p className="font-rubik text-[10px] text-white/30 mt-3 text-center">Suhail Mobile Shop Raebareli • Since 2015 • Best Mobile Store</p>
         </div>
       </aside>
 
@@ -145,12 +138,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-4">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden p-2 hover:bg-black/5 rounded-full"><Menu size={20} /></button>
             <div>
-              <h2 className="font-rubik font-black text-[20px] tracking-tight capitalize">{activeTab} • Working Properly</h2>
-              <p className="font-rubik text-[12px] text-black/60">InsForge Postgres • Real-time • Rubik Sans Serif • 100% Working</p>
+              <h2 className="font-rubik font-black text-[20px] tracking-tight capitalize">{activeTab} • Suhail Mobile Shop Raebareli</h2>
+              <p className="font-rubik text-[12px] text-black/60">Best Mobile Store Raebareli • Real Products • Secure • Since 2015</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden md:flex bg-green-100 text-green-700 px-3 py-1 rounded-full font-rubik font-bold text-[11px]">● Live • InsForge Connected</span>
+            <span className="hidden md:flex bg-green-100 text-green-700 px-3 py-1 rounded-full font-rubik font-bold text-[11px]">● Live • Raebareli Store</span>
             <button onClick={() => window.location.href = '/'} className="bg-black text-white px-4 py-2 rounded-full font-rubik font-bold text-[12px] flex items-center gap-2"><Store size={14} /> View Shop</button>
           </div>
         </header>

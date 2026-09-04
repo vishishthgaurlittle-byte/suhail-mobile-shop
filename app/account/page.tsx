@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { insforge, authHelpers, db } from '@/lib/insforge'
 import { User, ShoppingBag, Search, Heart, MapPin, Settings, LogOut, Package, Clock, Star, Trash2, ShoppingCart, Eye, ArrowLeft, CreditCard, Truck, Check, X, LayoutDashboard, Tag, Layers, Image as ImageIcon, Calendar, Wrench, Headphones, Plus, Edit, Save, Award, Sparkles, Gift, Smartphone, Building2, QrCode, AlertTriangle, Upload, Shield, TrendingUp } from 'lucide-react'
+import LoadingScreen from '@/components/LoadingScreen'
 
 export default function AccountPage() {
   const [user, setUser] = useState<any>(null)
@@ -288,14 +289,7 @@ export default function AccountPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center font-rubik">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="font-rubik font-bold">Loading My Account... Rubik • InsForge • Admin Check</p>
-        </div>
-      </div>
-    )
+    return <LoadingScreen message="Loading your account..." subMessage="Suhail Mobile Shop Raebareli • Best Mobile Store" />
   }
 
   const customerTabs = [
@@ -327,10 +321,10 @@ export default function AccountPage() {
           <div className="flex items-center gap-4">
             <button onClick={() => window.location.href = '/'} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20"><ArrowLeft size={18} /></button>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center font-rubik font-black text-xl">S</div>
+              <img src="/logo-demo-2.png" alt="Suhail Mobile Shop" className="w-10 h-10 object-contain rounded-xl bg-white" />
               <div>
                 <h1 className="font-rubik font-black text-[16px] tracking-tight">My Account • {isAdmin ? 'Admin Access Enabled' : 'Customer'}</h1>
-                <p className="font-rubik text-[11px] text-white/60">{isAdmin ? 'Admin Panel Connected Inside My Account • Only for admin@suhailmobile.com • Rubik + InsForge Only' : 'Orders, Search History, Cart, Wishlist, Profile • Rubik + InsForge'}</p>
+                <p className="font-rubik text-[11px] text-white/60">{isAdmin ? 'Admin Panel Connected • Secure Access • Suhail Mobile Shop Raebareli' : 'Orders, Search History, Cart, Wishlist, Profile • Suhail Mobile Shop Raebareli'}</p>
               </div>
             </div>
           </div>
@@ -524,7 +518,7 @@ export default function AccountPage() {
                 <p className="font-rubik"><span className="font-bold">Email:</span> {user?.email}</p>
                 <p className="font-rubik mt-2"><span className="font-bold">ID:</span> {user?.id?.substring(0, 20)}...</p>
                 <p className="font-rubik mt-2"><span className="font-bold">Role:</span> {isAdmin ? 'Admin • Full Access • Can manage all' : 'Customer • Can order, wishlist, cart'}</p>
-                <p className="font-rubik mt-2"><span className="font-bold">Auth:</span> Google OAuth + Email OTP via InsForge • Rubik Font • 100% InsForge Only</p>
+                <p className="font-rubik mt-2"><span className="font-bold">Auth:</span> Google OAuth + Email OTP • Secure • Suhail Mobile Shop Raebareli</p>
               </div>
             </div>
           )}
@@ -544,7 +538,7 @@ export default function AccountPage() {
                 ))}
               </div>
               <div className="bg-white rounded-2xl p-6 border border-black/10">
-                <h3 className="font-rubik font-bold">Admin Features • Working Properly • Rubik • InsForge Only</h3>
+                <h3 className="font-rubik font-bold">Admin Features • Working Properly • Suhail Mobile Shop Raebareli</h3>
                 <div className="mt-4 grid md:grid-cols-3 gap-3 font-rubik text-xs">
                   <div className="bg-[#F5F5F7] p-3 rounded-xl"><p className="font-bold">Products</p><p className="text-black/60">Add/Edit/Delete real phones like S25 Ultra, iPhone 16 Pro Max</p></div>
                   <div className="bg-[#F5F5F7] p-3 rounded-xl"><p className="font-bold">Orders</p><p className="text-black/60">Manage all customer orders, update status</p></div>
@@ -559,7 +553,7 @@ export default function AccountPage() {
               <div className="flex flex-wrap justify-between gap-4 items-center">
                 <div>
                   <h2 className="font-rubik font-black text-[22px]">Products • {(products || []).length} • Admin Only • Real Stock • Edit/Delete Working</h2>
-                  <p className="font-rubik text-[12px] text-black/60 mt-1">✅ Add, Edit, Delete all working • InsForge Postgres • Rubik • Secure</p>
+                  <p className="font-rubik text-[12px] text-black/60 mt-1">✅ Add, Edit, Delete all working • Secure • Suhail Mobile Shop Raebareli</p>
                 </div>
                 <button onClick={() => { setEditingProduct(null); setProductForm({ name: '', brand_id: brands[0]?.id || '', price: '', stock: '', description: '', short_desc: '', sku: '', is_featured: false, is_new_launch: false, thumbnail: '', category_id: 'cat_smartphones' }); setShowProductModal(true) }} className="bg-black text-white px-5 py-2.5 rounded-full font-rubik font-bold text-[13px] flex items-center gap-2 hover:bg-zinc-800"><Plus size={16} /> Add Product</button>
               </div>
@@ -663,7 +657,7 @@ export default function AccountPage() {
                         <button type="button" onClick={() => { setShowProductModal(false); setEditingProduct(null) }} className="flex-1 bg-[#F5F5F7] text-black py-3 rounded-full font-rubik font-bold text-sm">Cancel</button>
                         <button type="submit" className="flex-1 bg-black text-white py-3 rounded-full font-rubik font-bold text-sm flex items-center justify-center gap-2"><Save size={16} /> {editingProduct ? 'Update Product' : 'Add Product'} • InsForge</button>
                       </div>
-                      <p className="font-rubik text-[11px] text-black/50 text-center">✅ Edit & Delete working properly • InsForge Postgres • Rubik Font • Secure • Admin Only</p>
+                      <p className="font-rubik text-[11px] text-black/50 text-center">✅ Edit & Delete working properly • Secure • Admin Only • Suhail Mobile Shop Raebareli</p>
                     </form>
                   </div>
                 </div>

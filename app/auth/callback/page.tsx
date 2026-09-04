@@ -43,7 +43,7 @@ export default function AuthCallback() {
         <div className="w-16 h-16 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
         <h2 className="text-xl font-black font-rubik mb-2">Suhail Mobile Shop</h2>
         <p className="text-gray-600 font-rubik">{status}</p>
-        <p className="text-xs text-gray-400 mt-4 font-rubik">Powered by InsForge Auth • Rubik Font • 100% InsForge Only</p>
+        <p className="text-xs text-gray-400 mt-4 font-rubik">Suhail Mobile Shop Raebareli • Best Mobile Store Since 2015</p>
       </div>
     </div>
   )

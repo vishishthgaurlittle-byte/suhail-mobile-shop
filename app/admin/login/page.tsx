@@ -69,7 +69,7 @@ export default function AdminLogin() {
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-white text-black rounded-2xl flex items-center justify-center mx-auto font-rubik font-black text-2xl shadow-2xl">S</div>
           <h1 className="font-rubik font-black text-[28px] text-white tracking-tight mt-4">Suhail Mobile Shop</h1>
-          <p className="font-rubik text-[13px] text-white/60 mt-1">ADMIN PANEL • RUBIK FONT • INSFORGE ONLY</p>
+          <p className="font-rubik text-[13px] text-white/60 mt-1">ADMIN PANEL • Best Mobile Store Raebareli</p>
           <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-3 py-1 mt-3">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
             <span className="font-rubik text-[11px] font-bold tracking-widest text-white/80 uppercase">InsForge Auth • Working Properly</span>
@@ -79,7 +79,7 @@ export default function AdminLogin() {
         <div className="bg-white rounded-[24px] overflow-hidden shadow-[0_32px_64px_rgba(0,0,0,0.5)]">
           <div className="bg-black text-white p-6">
             <h2 className="font-rubik font-black text-[20px] tracking-tight flex items-center gap-2"><Shield size={20} /> Admin Login • Working</h2>
-            <p className="font-rubik text-[12px] text-white/60 mt-1">Google + Email OTP via InsForge • Rubik Font • 100% InsForge Only</p>
+            <p className="font-rubik text-[12px] text-white/60 mt-1">Google + Email OTP • Secure • Suhail Mobile Shop Raebareli</p>
           </div>
 
           <form onSubmit={handleLogin} className="p-7 space-y-5">
@@ -139,13 +139,13 @@ export default function AdminLogin() {
                 <p>3. If admin@suhailmobile.com → Auto allow (verified via migration)</p>
                 <p>4. JWT stored, redirect to /admin dashboard</p>
                 <p>5. All admin CRUD uses InsForge DB only - No Turso</p>
-                <p className="text-white/40 mt-2">Rubik Font • InsForge Only • Google + Email OTP • Real Products • Repair + Preorder • Fully Working</p>
+                <p className="text-white/40 mt-2">Best Mobile Store Raebareli • Google + Email OTP • Real Products • Repair + Preorder • Fully Working</p>
               </div>
             </div>
           </form>
         </div>
 
-        <p className="text-center font-rubik text-[11px] text-white/30 mt-6">© 2026 Suhail Mobile Shop • Rubik Sans Serif • InsForge Only • Admin: admin@suhailmobile.com / Suhail@123 • Working Properly</p>
+        <p className="text-center font-rubik text-[11px] text-white/30 mt-6">© 2026 Suhail Mobile Shop • Best Mobile Store Raebareli • Admin: admin@suhailmobile.com / Suhail@123 • Working Properly</p>
       </div>
     </div>
   )
