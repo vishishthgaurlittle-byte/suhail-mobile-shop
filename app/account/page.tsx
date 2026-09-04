@@ -2,7 +2,7 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react'
 import { insforge, authHelpers, db } from '@/lib/insforge'
-import { User, ShoppingBag, Search, Heart, MapPin, Settings, LogOut, Package, Clock, Star, Trash2, ShoppingCart, Eye, ArrowLeft, CreditCard, Truck, Check, X, LayoutDashboard, Tag, Layers, Image as ImageIcon, Calendar, Wrench, Headphones, Plus, Edit, Save, Award, Sparkles, Gift, Smartphone, Building2, QrCode, AlertTriangle, Upload } from 'lucide-react'
+import { User, ShoppingBag, Search, Heart, MapPin, Settings, LogOut, Package, Clock, Star, Trash2, ShoppingCart, Eye, ArrowLeft, CreditCard, Truck, Check, X, LayoutDashboard, Tag, Layers, Image as ImageIcon, Calendar, Wrench, Headphones, Plus, Edit, Save, Award, Sparkles, Gift, Smartphone, Building2, QrCode, AlertTriangle, Upload, Shield, TrendingUp } from 'lucide-react'
 
 export default function AccountPage() {
   const [user, setUser] = useState<any>(null)
@@ -112,7 +112,7 @@ export default function AccountPage() {
           setWishlist(JSON.parse(localStorage.getItem('suhail_wishlist') || '[]'))
           // Also check for local orders fallback
           const localOrders = JSON.parse(localStorage.getItem('suhail_orders') || '[]')
-          if (localOrders.length > 0 && orders.length === 0) {
+          if (localOrders.length > 0 && (orders || []).length === 0) {
             setOrders(localOrders)
           }
         } catch {}
@@ -270,22 +270,22 @@ export default function AccountPage() {
   }
 
   const customerTabs = [
-    { id: 'orders', label: 'Order History', icon: ShoppingBag, count: orders.length, desc: 'Your orders' },
-    { id: 'search', label: 'Search History', icon: Search, count: searchHistory.length, desc: 'What you searched' },
-    { id: 'cart', label: 'My Cart', icon: ShoppingCart, count: cart.length, desc: 'Cart items' },
-    { id: 'wishlist', label: 'Wishlist', icon: Heart, count: wishlist.length, desc: 'Saved items' },
+    { id: 'orders', label: 'Order History', icon: ShoppingBag, count: (orders || []).length, desc: 'Your orders' },
+    { id: 'search', label: 'Search History', icon: Search, count: (searchHistory || []).length, desc: 'What you searched' },
+    { id: 'cart', label: 'My Cart', icon: ShoppingCart, count: (cart || []).length, desc: 'Cart items' },
+    { id: 'wishlist', label: 'Wishlist', icon: Heart, count: (wishlist || []).length, desc: 'Saved items' },
     { id: 'profile', label: 'Profile', icon: User, count: null, desc: 'Your info' },
   ]
 
   const adminTabs = [
     { id: 'admin-dashboard', label: 'Admin Dashboard', icon: LayoutDashboard, count: null, desc: 'Sales, Orders, Stock • Admin Only' },
-    { id: 'admin-products', label: 'Products', icon: Package, count: products.length, desc: 'Add/Edit Real Phones • Admin Only' },
+    { id: 'admin-products', label: 'Products', icon: Package, count: (products || []).length, desc: 'Add/Edit Real Phones • Admin Only' },
     { id: 'admin-orders', label: 'Orders', icon: ShoppingCart, count: null, desc: 'All Orders • Admin Only' },
-    { id: 'admin-banners', label: 'Banners', icon: ImageIcon, count: banners.length, desc: 'Hero, Offers • Admin Only' },
-    { id: 'admin-brands', label: 'Brands', icon: Tag, count: brands.length, desc: 'Apple, Samsung etc • Admin Only' },
-    { id: 'admin-preorder', label: 'Preorder Zone', icon: Calendar, count: preorderPhones.length, desc: 'Upcoming Phones • Admin Only' },
-    { id: 'admin-accessories', label: 'Accessories', icon: Headphones, count: accessories.length, desc: 'Earbuds, Charger • Admin Only' },
-    { id: 'admin-repair', label: 'Repair Tickets', icon: Wrench, count: repairTickets.length, desc: 'Repair + Staff • Admin Only' },
+    { id: 'admin-banners', label: 'Banners', icon: ImageIcon, count: (banners || []).length, desc: 'Hero, Offers • Admin Only' },
+    { id: 'admin-brands', label: 'Brands', icon: Tag, count: (brands || []).length, desc: 'Apple, Samsung etc • Admin Only' },
+    { id: 'admin-preorder', label: 'Preorder Zone', icon: Calendar, count: (preorderPhones || []).length, desc: 'Upcoming Phones • Admin Only' },
+    { id: 'admin-accessories', label: 'Accessories', icon: Headphones, count: (accessories || []).length, desc: 'Earbuds, Charger • Admin Only' },
+    { id: 'admin-repair', label: 'Repair Tickets', icon: Wrench, count: (repairTickets || []).length, desc: 'Repair + Staff • Admin Only' },
     { id: 'admin-settings', label: 'Settings', icon: Settings, count: null, desc: 'Shop, Payments • Admin Only' },
   ]
 
@@ -318,15 +318,15 @@ export default function AccountPage() {
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-black text-white rounded-full flex items-center justify-center font-rubik font-black text-2xl">{(user?.email || 'U')[0].toUpperCase()}</div>
               <div>
-                <h2 className="font-rubik font-black text-[16px] tracking-tight flex items-center gap-2">{user?.profile?.name || user?.email?.split('@')[0] || 'Customer'} {isAdmin && <span className="bg-black text-white text-[10px] px-2 py-0.5 rounded-full">ADMIN</span>}</h2>
+                <h2 className="font-rubik font-black text-[16px] tracking-tight flex items-center gap-2">{(user?.email?.split('@')[0] || 'Customer')} {isAdmin && <span className="bg-black text-white text-[10px] px-2 py-0.5 rounded-full">ADMIN</span>}</h2>
                 <p className="font-rubik text-[12px] text-black/60">{user?.email}</p>
                 <span className={`inline-flex px-2 py-0.5 rounded-full font-rubik font-bold text-[10px] mt-1 ${isAdmin ? 'bg-[#FF3B30] text-white' : 'bg-green-100 text-green-700'}`}>{isAdmin ? '● Admin • All Access' : '● Verified • Customer'}</span>
               </div>
             </div>
             <div className="mt-6 space-y-2">
-              <div className="flex justify-between font-rubik text-[13px]"><span className="text-black/60">Member Since</span><span className="font-bold">{new Date(user?.createdAt || Date.now()).toLocaleDateString()}</span></div>
-              <div className="flex justify-between font-rubik text-[13px]"><span className="text-black/60">Orders</span><span className="font-bold">{orders.length}</span></div>
-              {isAdmin && <div className="flex justify-between font-rubik text-[13px]"><span className="text-black/60">Products Managed</span><span className="font-bold">{products.length}</span></div>}
+              <div className="flex justify-between font-rubik text-[13px]"><span className="text-black/60">Member Since</span><span className="font-bold">{new Date((user?.created_at || user?.createdAt || Date.now()) as any).toLocaleDateString()}</span></div>
+              <div className="flex justify-between font-rubik text-[13px]"><span className="text-black/60">Orders</span><span className="font-bold">{(orders || []).length}</span></div>
+              {isAdmin && <div className="flex justify-between font-rubik text-[13px]"><span className="text-black/60">Products Managed</span><span className="font-bold">{(products || []).length}</span></div>}
             </div>
           </div>
 
@@ -380,7 +380,7 @@ export default function AccountPage() {
         <main className="md:col-span-9">
           {activeTab === 'orders' && (
             <div className="space-y-4">
-              <h2 className="font-rubik font-black text-[24px] tracking-tight">Order History • {orders.length} Orders • UPI/Bank Direct • Full Payment + Proof</h2>
+              <h2 className="font-rubik font-black text-[24px] tracking-tight">Order History • {(orders || []).length} Orders • UPI/Bank Direct • Full Payment + Proof</h2>
               <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex gap-3">
                 <CreditCard size={18} className="text-green-700 flex-shrink-0" />
                 <div className="font-rubik text-[12px] leading-relaxed">
@@ -389,7 +389,7 @@ export default function AccountPage() {
                   <p className="text-green-800">• For home delivery: Full payment required + Upload screenshot + UTR • Staff verifies UTR and calls you</p>
                 </div>
               </div>
-              {orders.length === 0 ? (
+              {(orders || []).length === 0 ? (
                 <div className="bg-white rounded-[20px] p-12 text-center border border-black/10">
                   <ShoppingBag size={32} className="mx-auto text-black/30 mb-4" />
                   <h3 className="font-rubik font-bold text-[18px]">No orders yet</h3>
@@ -450,7 +450,7 @@ export default function AccountPage() {
             <div className="space-y-4">
               <div className="flex justify-between"><h2 className="font-rubik font-black text-[24px] tracking-tight">Search History • What You Searched</h2><button onClick={() => { localStorage.removeItem('suhail_search_history'); setSearchHistory([]) }} className="bg-red-50 text-red-600 px-4 py-2 rounded-full font-rubik font-bold text-xs flex items-center gap-2"><Trash2 size={14} /> Clear</button></div>
               <div className="bg-white rounded-[20px] border border-black/10">
-                {searchHistory.length === 0 ? (
+                {(searchHistory || []).length === 0 ? (
                   <div className="p-12 text-center"><Search size={32} className="mx-auto text-black/30 mb-4" /><p className="font-rubik font-bold">No search history</p><p className="font-rubik text-[13px] text-black/60 mt-2">Searches like "iPhone 16", "S25 Ultra" will appear here. Saved in localStorage + InsForge.</p></div>
                 ) : (
                   searchHistory.map((term, i) => (
@@ -463,7 +463,7 @@ export default function AccountPage() {
 
           {activeTab === 'cart' && (
             <div className="space-y-4">
-              <h2 className="font-rubik font-black text-[24px] tracking-tight">My Cart • {cart.length} Items</h2>
+              <h2 className="font-rubik font-black text-[24px] tracking-tight">My Cart • {(cart || []).length} Items</h2>
               <div className="bg-white rounded-[20px] border border-black/10 p-12 text-center">
                 <ShoppingCart size={32} className="mx-auto text-black/30 mb-4" />
                 <h3 className="font-rubik font-bold">Cart empty</h3>
@@ -491,9 +491,9 @@ export default function AccountPage() {
               <div className="grid md:grid-cols-4 gap-4">
                 {[
                   { title: 'Today Sales', value: '₹1,25,000', icon: TrendingUp, color: 'bg-green-500' },
-                  { title: 'Total Orders', value: orders.length || 42, icon: ShoppingCart, color: 'bg-blue-500' },
-                  { title: 'Products', value: products.length, icon: Package, color: 'bg-purple-500' },
-                  { title: 'Low Stock', value: products.filter((p: any) => p.stock < 5).length, icon: Clock, color: 'bg-red-500' },
+                  { title: 'Total Orders', value: (orders || []).length || 42, icon: ShoppingCart, color: 'bg-blue-500' },
+                  { title: 'Products', value: (products || []).length, icon: Package, color: 'bg-purple-500' },
+                  { title: 'Low Stock', value: (products || []).filter((p: any) => p.stock < 5).length, icon: Clock, color: 'bg-red-500' },
                 ].map((stat, i) => (
                   <div key={i} className="bg-white rounded-2xl p-5 border border-black/10"><div className="flex justify-between"><div><p className="font-rubik text-[11px] font-bold uppercase text-black/50">{stat.title}</p><p className="font-rubik font-black text-2xl mt-1">{stat.value}</p></div><div className={`w-10 h-10 ${stat.color} rounded-xl flex items-center justify-center text-white`}><stat.icon size={18} /></div></div></div>
                 ))}
@@ -513,7 +513,7 @@ export default function AccountPage() {
             <div className="space-y-4">
               <div className="flex flex-wrap justify-between gap-4 items-center">
                 <div>
-                  <h2 className="font-rubik font-black text-[22px]">Products • {products.length} • Admin Only • Real Stock • Edit/Delete Working</h2>
+                  <h2 className="font-rubik font-black text-[22px]">Products • {(products || []).length} • Admin Only • Real Stock • Edit/Delete Working</h2>
                   <p className="font-rubik text-[12px] text-black/60 mt-1">✅ Add, Edit, Delete all working • InsForge Postgres • Rubik • Secure</p>
                 </div>
                 <button onClick={() => { setEditingProduct(null); setProductForm({ name: '', brand_id: brands[0]?.id || '', price: '', stock: '', description: '', short_desc: '', sku: '', is_featured: false, is_new_launch: false, thumbnail: '', category_id: 'cat_smartphones' }); setShowProductModal(true) }} className="bg-black text-white px-5 py-2.5 rounded-full font-rubik font-bold text-[13px] flex items-center gap-2 hover:bg-zinc-800"><Plus size={16} /> Add Product</button>
@@ -521,7 +521,7 @@ export default function AccountPage() {
               
               <div className="bg-white rounded-2xl border border-black/10 overflow-hidden">
                 <div className="p-4 bg-[#F5F5F7] border-b border-black/10 flex items-center justify-between">
-                  <p className="font-rubik font-bold text-[13px]">All Products • {products.length} • Click Edit to modify, Delete to remove • InsForge Only</p>
+                  <p className="font-rubik font-bold text-[13px]">All Products • {(products || []).length} • Click Edit to modify, Delete to remove • InsForge Only</p>
                   <div className="flex gap-2">
                     <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-[10px] font-bold">Edit Working ✅</span>
                     <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-[10px] font-bold">Delete Working ✅</span>
@@ -531,7 +531,7 @@ export default function AccountPage() {
                   <table className="w-full">
                     <thead className="bg-[#F5F5F7]"><tr className="font-rubik text-[11px] font-bold uppercase text-black/50"><th className="text-left p-4">Product</th><th className="text-left p-4">Brand</th><th className="text-left p-4">Price</th><th className="text-left p-4">Stock</th><th className="text-right p-4">Actions • Edit/Delete</th></tr></thead>
                     <tbody>
-                      {products.length === 0 ? (
+                      {(products || []).length === 0 ? (
                         <tr><td colSpan={5} className="p-8 text-center font-rubik text-black/50">No products yet. Click Add Product to add S25 Ultra, iPhone 16 Pro Max etc.</td></tr>
                       ) : (
                         products.map((p: any) => (
@@ -761,10 +761,10 @@ export default function AccountPage() {
                       <ol className="list-decimal pl-5 mt-2 space-y-1 text-black/70">
                         <li>Open your GPay / PhonePe / Paytm or Canara Bank app</li>
                         <li>Search UTR number (e.g. 412345678901) in transaction history</li>
-                        <li>Check amount matches order total (₹{orders[0]?.total_amount || '129999'})</li>
+                        <li>Check amount matches order total (₹{(orders && orders[0])?.total_amount || '129999'})</li>
                         <li>Check screenshot matches transaction</li>
                         <li>If verified, update order status to "verified" → "shipped" → "delivered"</li>
-                        <li>Call customer: +91 {orders[0]?.customer_phone || '8299384658'} • WhatsApp proof OK</li>
+                        <li>Call customer: +91 {(orders && orders[0])?.customer_phone || '8299384658'} • WhatsApp proof OK</li>
                       </ol>
                     </div>
                     <div className="mt-4 flex gap-2">
@@ -785,7 +785,7 @@ export default function AccountPage() {
               <div className="bg-white rounded-2xl border border-black/10 p-8 text-center">
                 <div className="w-16 h-16 bg-[#F5F5F7] rounded-full flex items-center justify-center mx-auto mb-4"><Package size={24} /></div>
                 <h3 className="font-rubik font-bold">{activeTab.replace('admin-', '').toUpperCase()} Management • Working Properly</h3>
-                <p className="font-rubik text-[13px] text-black/60 mt-2 max-w-md mx-auto">This section is only visible to admin account (admin@suhailmobile.com). Normal customers don't see admin tabs. All data stored in InsForge Postgres. You can manage {activeTab.replace('admin-', '')} here. For demo, showing count: {activeTab === 'admin-banners' ? banners.length : activeTab === 'admin-brands' ? brands.length : activeTab === 'admin-preorder' ? preorderPhones.length : activeTab === 'admin-accessories' ? accessories.length : activeTab === 'admin-repair' ? repairTickets.length : '0'} records.</p>
+                <p className="font-rubik text-[13px] text-black/60 mt-2 max-w-md mx-auto">This section is only visible to admin account (admin@suhailmobile.com). Normal customers don't see admin tabs. All data stored in InsForge Postgres. You can manage {activeTab.replace('admin-', '')} here. For demo, showing count: {activeTab === 'admin-banners' ? (banners || []).length : activeTab === 'admin-brands' ? (brands || []).length : activeTab === 'admin-preorder' ? (preorderPhones || []).length : activeTab === 'admin-accessories' ? (accessories || []).length : activeTab === 'admin-repair' ? (repairTickets || []).length : '0'} records.</p>
                 <div className="mt-6 bg-[#F5F5F7] rounded-xl p-4 text-left max-w-md mx-auto">
                   <p className="font-rubik font-bold text-xs">What you can do here:</p>
                   <ul className="font-rubik text-xs text-black/60 mt-2 space-y-1 list-disc pl-4">
@@ -806,8 +806,4 @@ export default function AccountPage() {
       {showToast && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-white px-6 py-3 rounded-full font-rubik font-bold text-[13px] shadow-2xl z-50">{showToast}</div>}
     </div>
   )
-}
-
-function TrendingUp(props: any) {
-  return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
 }
