@@ -1,0 +1,35 @@
+{
+  "name": "suhail-mobile-shop",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Suhail Mobile Shop Raebareli - Premium mobile store with InsForge backend, Rubik font, full admin panel",
+  "scripts": {
+    "dev": "next dev -p 3000 -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start -p 3000 -H 0.0.0.0",
+    "lint": "next lint",
+    "db:create-tables": "node scripts/create-insforge-tables.mjs",
+    "db:seed": "node scripts/seed-insforge.mjs"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@insforge/sdk": "^1.2.5",
+    "zustand": "^4.5.2",
+    "framer-motion": "^11.0.8",
+    "lucide-react": "^0.363.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.2",
+    "recharts": "^2.12.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.12.7",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3"
+  }
+}
