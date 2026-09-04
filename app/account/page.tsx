@@ -50,6 +50,8 @@ export default function AccountPage() {
         }
         
         setUser(userData)
+        // FIX: Ensure profile exists for customers tab
+        authHelpers.ensureProfile(userData).catch(()=>{})
         console.log('Account loaded user:', userData.email)
 
         // Check if admin - with robust check

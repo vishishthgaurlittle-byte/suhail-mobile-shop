@@ -2,7 +2,7 @@
 // @ts-nocheck
 
 import { useEffect, useState } from 'react'
-import { insforge } from '@/lib/insforge'
+import { insforge, authHelpers } from '@/lib/insforge'
 import { useRouter } from 'next/navigation'
 
 export default function AuthCallback() {
@@ -22,6 +22,11 @@ export default function AuthCallback() {
 
         if (data?.user) {
           const u = data.user as any
+          // FIX: Ensure profile and save to customers list for admin panel
+          try {
+            authHelpers.saveUserToLocal(u)
+            authHelpers.ensureProfile(u).catch(()=>{})
+          } catch {}
           setStatus(`Welcome ${u.profile?.name || u.email}! Redirecting...`)
           setTimeout(() => router.push('/?auth=success'), 1000)
         } else {

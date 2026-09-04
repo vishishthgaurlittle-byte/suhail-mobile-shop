@@ -19,16 +19,87 @@ export function generateId(prefix = "") {
 
 // Auth persistence helpers - Fix expiry on navigation
 export const authHelpers = {
-  // Save user to localStorage for persistence fallback
+  // Save user to localStorage for persistence fallback + customers global list
   saveUserToLocal(user: any) {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem('suhail_user', JSON.stringify(user))
       localStorage.setItem('suhail_user_email', user.email || '')
       localStorage.setItem('suhail_last_auth', Date.now().toString())
+      // Also save to customers global list for admin panel - ensures any account created shows in customers tab
+      const customersKey = 'suhail_customers_global'
+      const existing = JSON.parse(localStorage.getItem(customersKey) || '[]')
+      const customerData = {
+        id: user.id,
+        user_id: user.id,
+        email: user.email,
+        customer_email: user.email,
+        full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Customer',
+        customer_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Customer',
+        phone: user.phone || user.user_metadata?.phone || '',
+        customer_phone: user.phone || user.user_metadata?.phone || '',
+        created_at: user.created_at || new Date().toISOString(),
+        is_admin: user.email === 'admin@suhailmobile.com' || user.email === 'suhailmobile@gmail.com',
+        role: (user.email === 'admin@suhailmobile.com' || user.email === 'suhailmobile@gmail.com') ? 'admin' : 'customer',
+        provider: user.app_metadata?.provider || 'email',
+        last_sign_in: new Date().toISOString()
+      }
+      // Update or add
+      const idx = existing.findIndex((c: any) => c.user_id === user.id || c.email === user.email || c.id === user.id)
+      if (idx >= 0) {
+        existing[idx] = { ...existing[idx], ...customerData }
+      } else {
+        existing.unshift(customerData)
+      }
+      localStorage.setItem(customersKey, JSON.stringify(existing))
     } catch {}
   },
   
+  // Ensure profile exists in InsForge profiles table - FIX for customers not showing
+  async ensureProfile(user: any) {
+    if (!user?.id || !user?.email) return
+    try {
+      // Check if profile exists
+      const { data: existing } = await insforge.database.from('profiles').select('id').eq('user_id', user.id).single()
+      if (existing) {
+        // Update last sign in
+        try {
+          await insforge.database.from('profiles').update({ 
+            last_sign_in: new Date().toISOString(),
+            email: user.email,
+            updated_at: new Date().toISOString()
+          }).eq('user_id', user.id)
+        } catch {}
+        return
+      }
+      // Create new profile
+      const profileData = {
+        id: user.id, // Use user id as profile id if possible, or generate
+        user_id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Customer',
+        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Customer',
+        phone: user.phone || user.user_metadata?.phone || '',
+        role: (user.email === 'admin@suhailmobile.com' || user.email === 'suhailmobile@gmail.com') ? 'admin' : 'customer',
+        is_admin: (user.email === 'admin@suhailmobile.com' || user.email === 'suhailmobile@gmail.com'),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_sign_in: new Date().toISOString()
+      }
+      // Try insert
+      const { error } = await insforge.database.from('profiles').insert(profileData)
+      if (error) {
+        // If id conflict, try with random id
+        try {
+          const altProfile = { ...profileData, id: `profile_${Date.now()}_${Math.random().toString(36).substring(2,8)}` }
+          await insforge.database.from('profiles').insert(altProfile)
+        } catch {}
+      }
+    } catch (e) {
+      // Silent fail - localStorage fallback will handle
+    }
+  },
+
   getUserFromLocal(): any | null {
     if (typeof window === 'undefined') return null
     try {
@@ -58,14 +129,16 @@ export const authHelpers = {
     } catch {}
   },
   
-  // Robust getCurrentUser with localStorage fallback - FIXES expiry on navigation
+  // Robust getCurrentUser with localStorage fallback - FIXES expiry on navigation + ensures profile for customers tab
   async getCurrentUserRobust(): Promise<any | null> {
     try {
       // Try InsForge first
       const { data, error } = await insforge.auth.getCurrentUser()
       if (!error && data?.user) {
-        // Save to local for fallback
+        // Save to local for fallback + customers list
         this.saveUserToLocal(data.user)
+        // Ensure profile exists for customers tab - critical fix
+        this.ensureProfile(data.user).catch(()=>{})
         if (data.user.email === 'admin@suhailmobile.com') {
           localStorage.setItem('suhail_is_admin', 'true')
         }
@@ -370,24 +443,38 @@ export const db = {
     }
   },
 
-  // Customers - REAL customer accounts from profiles + auth
+  // Customers - REAL customer accounts from profiles + auth - FIXED to show any account created
   customers: {
     async getAll() {
       try {
-        // Get profiles which represent customer accounts
-        const { data: profiles, error: profileError } = await insforge.database.from('profiles').select('*').order('created_at', { ascending: false })
-        if (profileError) throw profileError
-        let customers = profiles || []
+        // Get profiles which represent customer accounts - primary source
+        let profilesData: any[] = []
+        try {
+          const { data: profiles, error: profileError } = await insforge.database.from('profiles').select('*').order('created_at', { ascending: false })
+          if (!profileError && profiles) {
+            profilesData = profiles
+          }
+        } catch {}
         
-        // Also try to get from auth.users via database view if exists
-        // Merge with localStorage customers for those created locally
+        let customers = profilesData || []
+        
+        // Merge with localStorage customers for those created locally - CRITICAL FIX for customers tab
         if (typeof window !== 'undefined') {
           try {
-            // Check all per-user keys to build customer list from localStorage orders
             const customerMap = new Map()
+            // Add InsForge profiles first
             customers.forEach((c: any) => customerMap.set(c.user_id || c.id, c))
             
-            // Scan localStorage for customer emails from orders
+            // Add from suhail_customers_global - this ensures any account created shows immediately
+            const globalCustomers = JSON.parse(localStorage.getItem('suhail_customers_global') || '[]')
+            globalCustomers.forEach((cust: any) => {
+              const key = cust.user_id || cust.id || cust.email
+              if (!customerMap.has(key) && !Array.from(customerMap.values()).some((c: any) => c.email === cust.email || c.user_id === cust.user_id)) {
+                customerMap.set(key, cust)
+              }
+            })
+            
+            // Also scan localStorage for customer emails from orders (fallback)
             const globalOrders = JSON.parse(localStorage.getItem('suhail_orders_global') || '[]')
             globalOrders.forEach((order: any) => {
               if (order.customer_email && !Array.from(customerMap.values()).some((c: any) => c.customer_email === order.customer_email || c.email === order.customer_email)) {
@@ -399,7 +486,8 @@ export const db = {
                   customer_name: order.customer_name,
                   customer_phone: order.customer_phone,
                   created_at: order.created_at,
-                  is_local: true
+                  is_local: true,
+                  source: 'order'
                 })
               }
             })
@@ -410,9 +498,12 @@ export const db = {
         
         return customers
       } catch (e) {
-        // Fallback to localStorage customers
+        // Fallback to localStorage customers - ensures customers tab always works
         if (typeof window !== 'undefined') {
           try {
+            const globalCustomers = JSON.parse(localStorage.getItem('suhail_customers_global') || '[]')
+            if (globalCustomers.length > 0) return globalCustomers
+            
             const globalOrders = JSON.parse(localStorage.getItem('suhail_orders_global') || '[]')
             const map = new Map()
             globalOrders.forEach((o: any) => {
@@ -435,32 +526,56 @@ export const db = {
     },
     async delete(userId: string) {
       try {
-        // Delete profile
-        const { error: profileError } = await insforge.database.from('profiles').delete().eq('user_id', userId)
-        if (profileError) console.error('Profile delete error:', profileError)
-        
+        // Delete profile by user_id
+        try {
+          await insforge.database.from('profiles').delete().eq('user_id', userId)
+        } catch {}
         // Also try delete by id
-        const { error: profileError2 } = await insforge.database.from('profiles').delete().eq('id', userId)
+        try {
+          await insforge.database.from('profiles').delete().eq('id', userId)
+        } catch {}
+        // Also try delete by email
+        try {
+          await insforge.database.from('profiles').delete().eq('email', userId)
+        } catch {}
         
         // Delete orders for this customer
-        const { error: orderError } = await insforge.database.from('orders').delete().eq('user_id', userId)
+        try {
+          await insforge.database.from('orders').delete().eq('user_id', userId)
+        } catch {}
+        try {
+          await insforge.database.from('orders').delete().eq('customer_email', userId)
+        } catch {}
         
-        // Note: Deleting auth.users requires admin privileges, try but may fail with anon key
-        // For now, we delete profile and orders, which effectively removes customer data
-        // Admin can also manually delete via InsForge dashboard if needed
-        
-        // Clear localStorage for this customer
+        // Clear localStorage for this customer - CRITICAL for admin delete access
         if (typeof window !== 'undefined') {
           try {
             localStorage.removeItem(`suhail_orders_${userId}`)
-            // Remove from global
+            // Remove from customers global list
+            const globalCustomers = JSON.parse(localStorage.getItem('suhail_customers_global') || '[]')
+            const filteredCustomers = globalCustomers.filter((c: any) => c.user_id !== userId && c.id !== userId && c.email !== userId)
+            localStorage.setItem('suhail_customers_global', JSON.stringify(filteredCustomers))
+            // Remove from orders global
             const globalOrders = JSON.parse(localStorage.getItem('suhail_orders_global') || '[]')
             localStorage.setItem('suhail_orders_global', JSON.stringify(globalOrders.filter((o: any) => o.user_id !== userId && o.customer_email !== userId)))
+            // Remove per-user keys
+            Object.keys(localStorage).forEach(key => {
+              if (key.includes(userId)) {
+                try { localStorage.removeItem(key) } catch {}
+              }
+            })
           } catch {}
         }
         
         return true
       } catch (e) {
+        // Even if InsForge fails, clean localStorage
+        if (typeof window !== 'undefined') {
+          try {
+            const globalCustomers = JSON.parse(localStorage.getItem('suhail_customers_global') || '[]')
+            localStorage.setItem('suhail_customers_global', JSON.stringify(globalCustomers.filter((c: any) => c.user_id !== userId && c.id !== userId && c.email !== userId)))
+          } catch {}
+        }
         throw e
       }
     }

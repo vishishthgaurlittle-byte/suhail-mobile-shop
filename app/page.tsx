@@ -242,6 +242,8 @@ export default function Home() {
       if (error) throw error
       if (data?.user) {
         authHelpers.saveUserToLocal(data.user)
+        // FIX: Ensure profile exists so customer shows in admin customers tab
+        authHelpers.ensureProfile(data.user).catch(()=>{})
         setUser(data.user)
         const adminCheck = authHelpers.isAdminEmail(data.user.email) || await authHelpers.checkIsAdmin(data.user).catch(()=>false)
         setIsAdmin(adminCheck)
@@ -287,6 +289,8 @@ export default function Home() {
       if (error) throw error
       if (data?.user) {
         authHelpers.saveUserToLocal(data.user)
+        // FIX: Ensure profile exists so customer shows in admin customers tab - critical
+        authHelpers.ensureProfile(data.user).catch(()=>{})
         setUser(data.user)
         const adminCheck = authHelpers.isAdminEmail(data.user.email) || await authHelpers.checkIsAdmin(data.user).catch(()=>false)
         setIsAdmin(adminCheck)
