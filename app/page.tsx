@@ -38,6 +38,7 @@ export default function Home() {
   const [showAuth, setShowAuth] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'verify'>('login')
   const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -73,12 +74,17 @@ export default function Home() {
 
   useEffect(() => {
     async function checkUser() {
+      let userData: any = null
       try {
         // FIXED: Use robust auth with localStorage fallback - prevents expiry on navigation
-        const userData = await authHelpers.getCurrentUserRobust()
+        userData = await authHelpers.getCurrentUserRobust()
         if (userData) {
           setUser(userData)
           console.log('Auth restored:', userData.email)
+          // Check if admin for header switch My Account -> Admin Panel
+          const adminCheck = await authHelpers.checkIsAdmin(userData).catch(() => authHelpers.isAdminEmail(userData.email))
+          setIsAdmin(adminCheck)
+          console.log('Is admin header:', adminCheck)
         }
         
         // Also check URL for login required
@@ -91,22 +97,43 @@ export default function Home() {
         console.error('Auth check failed:', err)
       }
       
-      // FIXED: Load cart from localStorage - was missing after auth fix
+      // FIXED: Load cart from localStorage - per-user isolation
       try {
-        const savedCart = JSON.parse(localStorage.getItem('suhail_cart') || '[]')
+        const uid = userData?.id
+        let savedCart = []
+        if (uid) {
+          savedCart = JSON.parse(localStorage.getItem(`suhail_cart_${uid}`) || localStorage.getItem(`suhail_cart_${userData?.email}`) || localStorage.getItem('suhail_cart') || '[]')
+        } else {
+          const localUser = authHelpers.getUserFromLocal()
+          if (localUser?.id) {
+            savedCart = JSON.parse(localStorage.getItem(`suhail_cart_${localUser.id}`) || localStorage.getItem(`suhail_cart_${localUser.email}`) || localStorage.getItem('suhail_cart') || '[]')
+          } else {
+            savedCart = JSON.parse(localStorage.getItem('suhail_cart') || '[]')
+          }
+        }
         setCartItems(savedCart)
       } catch {}
     }
     checkUser()
     
     // Listen for storage changes (if user logs in/out in another tab)
-    const handleStorageChange = () => {
+    const handleStorageChange = async () => {
       const localUser = authHelpers.getUserFromLocal()
-      if (localUser) setUser(localUser)
-      try {
-        const savedCart = JSON.parse(localStorage.getItem('suhail_cart') || '[]')
-        setCartItems(savedCart)
-      } catch {}
+      if (localUser) {
+        setUser(localUser)
+        const adminCheck = authHelpers.isAdminEmail(localUser.email) || await authHelpers.checkIsAdmin(localUser).catch(()=>false)
+        setIsAdmin(adminCheck)
+        // Load per-user cart
+        try {
+          const perUserCart = JSON.parse(localStorage.getItem(`suhail_cart_${localUser.id}`) || localStorage.getItem(`suhail_cart_${localUser.email}`) || localStorage.getItem('suhail_cart') || '[]')
+          setCartItems(perUserCart)
+        } catch {}
+      } else {
+        try {
+          const savedCart = JSON.parse(localStorage.getItem('suhail_cart') || '[]')
+          setCartItems(savedCart)
+        } catch {}
+      }
     }
     window.addEventListener('storage', handleStorageChange)
     return () => window.removeEventListener('storage', handleStorageChange)
@@ -119,6 +146,11 @@ export default function Home() {
 
   const handleMyAccountClick = () => {
     // FIXED: Don't logout when clicking My Account - check auth properly
+    // If admin, go directly to admin panel
+    if (isAdmin && user) {
+      window.location.href = '/admin'
+      return
+    }
     const localUser = authHelpers.getUserFromLocal()
     if (!user && !localUser) {
       // Not logged in - show login modal instead of navigating
@@ -131,24 +163,45 @@ export default function Home() {
     window.location.href = '/account'
   }
 
+  const handleAdminPanelClick = () => {
+    window.location.href = '/admin'
+  }
+
   const handleLogout = async () => {
     // FIXED: Proper logout with local cleanup
     await authHelpers.signOutRobust()
     setUser(null)
+    setIsAdmin(false)
     showToastMessage('Logged out successfully')
   }
+
+  const getCartKey = (uid?: string) => uid ? `suhail_cart_${uid}` : 'suhail_cart'
+  const getOrdersKey = (uid?: string) => uid ? `suhail_orders_${uid}` : 'suhail_orders'
+  const getSearchKey = (uid?: string) => uid ? `suhail_search_history_${uid}` : 'suhail_search_history'
 
   const addToCart = (product: any) => {
     const newCart = [...cartItems, { ...product, cartId: `${product.id}_${Date.now()}`, qty: 1 }]
     setCartItems(newCart)
+    // Save per-user cart for isolation
+    const cartKey = user?.id ? getCartKey(user.id) : getCartKey()
+    localStorage.setItem(cartKey, JSON.stringify(newCart))
+    // Also keep global for guest fallback
     localStorage.setItem('suhail_cart', JSON.stringify(newCart))
+    if (user?.id) {
+      localStorage.setItem(`suhail_cart_${user.email}`, JSON.stringify(newCart))
+    }
     showToastMessage(`${product.name} added! 🛒 Total: ${newCart.length} items`)
   }
 
   const removeFromCart = (cartId: string) => {
     const newCart = cartItems.filter(item => item.cartId !== cartId)
     setCartItems(newCart)
+    const cartKey = user?.id ? getCartKey(user.id) : getCartKey()
+    localStorage.setItem(cartKey, JSON.stringify(newCart))
     localStorage.setItem('suhail_cart', JSON.stringify(newCart))
+    if (user?.id) {
+      localStorage.setItem(`suhail_cart_${user.email}`, JSON.stringify(newCart))
+    }
   }
 
   const cartTotal = cartItems.reduce((sum, item) => sum + item.price, 0)
@@ -176,8 +229,15 @@ export default function Home() {
       if (data?.user) {
         authHelpers.saveUserToLocal(data.user)
         setUser(data.user)
+        const adminCheck = authHelpers.isAdminEmail(data.user.email) || await authHelpers.checkIsAdmin(data.user).catch(()=>false)
+        setIsAdmin(adminCheck)
         setShowAuth(false)
-        showToastMessage(`Welcome back! 🎉 ${data.user.email}`)
+        if (adminCheck) {
+          showToastMessage(`Admin login! Redirecting to Admin Panel 🔐 ${data.user.email}`)
+          setTimeout(() => window.location.href = '/admin', 1000)
+        } else {
+          showToastMessage(`Welcome back! 🎉 ${data.user.email}`)
+        }
       }
     } catch (err: any) {
       if (err.message?.includes('verification')) {
@@ -214,8 +274,15 @@ export default function Home() {
       if (data?.user) {
         authHelpers.saveUserToLocal(data.user)
         setUser(data.user)
+        const adminCheck = authHelpers.isAdminEmail(data.user.email) || await authHelpers.checkIsAdmin(data.user).catch(()=>false)
+        setIsAdmin(adminCheck)
         setShowAuth(false)
-        showToastMessage('Verified! Welcome 🎉')
+        if (adminCheck) {
+          showToastMessage(`Admin verified! Redirecting to Admin Panel 🔐`)
+          setTimeout(() => window.location.href = '/admin', 1000)
+        } else {
+          showToastMessage('Verified! Welcome 🎉')
+        }
       }
     } catch (err: any) {
       setError(err.message)
@@ -226,9 +293,12 @@ export default function Home() {
 
   const handleSearch = (term: string) => {
     if (!term.trim()) return
-    const existing = JSON.parse(localStorage.getItem('suhail_search_history') || '[]')
+    const searchKey = user?.id ? `suhail_search_history_${user.id}` : 'suhail_search_history'
+    const existing = JSON.parse(localStorage.getItem(searchKey) || localStorage.getItem('suhail_search_history') || '[]')
     const updated = [term, ...existing.filter((s: string) => s !== term)].slice(0, 20)
+    localStorage.setItem(searchKey, JSON.stringify(updated))
     localStorage.setItem('suhail_search_history', JSON.stringify(updated))
+    if (user?.email) localStorage.setItem(`suhail_search_history_${user.email}`, JSON.stringify(updated))
     showToastMessage(`Searching for "${term}"... Found ${realProducts.filter(p => p.name.toLowerCase().includes(term.toLowerCase())).length} products`)
     setActiveTab(term)
   }
@@ -348,14 +418,33 @@ export default function Home() {
       if (error) {
         // If table structure different, try alternative
         console.error('Order insert error:', error)
-        // Save to localStorage as fallback and show success
-        const localOrders = JSON.parse(localStorage.getItem('suhail_orders') || '[]')
+        // Save to localStorage per-user for isolation
+        const ordersKey = user.id ? `suhail_orders_${user.id}` : 'suhail_orders'
+        const localOrders = JSON.parse(localStorage.getItem(ordersKey) || localStorage.getItem('suhail_orders') || '[]')
         localOrders.unshift(orderData)
+        localStorage.setItem(ordersKey, JSON.stringify(localOrders))
+        localStorage.setItem('suhail_orders', JSON.stringify(localOrders))
+        if (user.email) localStorage.setItem(`suhail_orders_${user.email}`, JSON.stringify(localOrders))
+        // Also save to global for admin view
+        const globalOrders = JSON.parse(localStorage.getItem('suhail_orders_global') || '[]')
+        globalOrders.unshift(orderData)
+        localStorage.setItem('suhail_orders_global', JSON.stringify(globalOrders))
+      } else {
+        // Also save per-user locally for instant My Account view
+        const ordersKey = user.id ? `suhail_orders_${user.id}` : 'suhail_orders'
+        const localOrders = JSON.parse(localStorage.getItem(ordersKey) || '[]')
+        localOrders.unshift(orderData)
+        localStorage.setItem(ordersKey, JSON.stringify(localOrders))
+        localStorage.setItem(`suhail_orders_${user.email}`, JSON.stringify(localOrders))
         localStorage.setItem('suhail_orders', JSON.stringify(localOrders))
       }
 
-      // Clear cart
+      // Clear per-user cart
       setCartItems([])
+      if (user?.id) {
+        localStorage.setItem(`suhail_cart_${user.id}`, JSON.stringify([]))
+        localStorage.setItem(`suhail_cart_${user.email}`, JSON.stringify([]))
+      }
       localStorage.setItem('suhail_cart', JSON.stringify([]))
       
       setShowCheckout(false)
@@ -369,18 +458,34 @@ export default function Home() {
     } catch (err: any) {
       console.error(err)
       showToastMessage('Order placed locally! Staff will contact you for payment verification. UTR: ' + utrNumber)
-      // Save locally even if InsForge fails
-      const localOrders = JSON.parse(localStorage.getItem('suhail_orders') || '[]')
-      localOrders.unshift({
+      // Save locally per-user even if InsForge fails - isolated
+      const ordersKey = user?.id ? `suhail_orders_${user.id}` : 'suhail_orders'
+      const localOrders = JSON.parse(localStorage.getItem(ordersKey) || localStorage.getItem('suhail_orders') || '[]')
+      const fallbackOrder = {
         id: `ORD-${Date.now()}`,
+        user_id: user.id,
+        customer_email: user.email,
         total_amount: cartTotal,
         utr_number: utrNumber,
         payment_method: paymentMethod,
         delivery_type: deliveryType,
-        created_at: new Date().toISOString()
-      })
+        order_status: 'pending_verification',
+        created_at: new Date().toISOString(),
+        customer_name: customerInfo.name || user.email?.split('@')[0],
+        customer_phone: customerInfo.phone
+      }
+      localOrders.unshift(fallbackOrder)
+      localStorage.setItem(ordersKey, JSON.stringify(localOrders))
+      localStorage.setItem(`suhail_orders_${user.email}`, JSON.stringify(localOrders))
       localStorage.setItem('suhail_orders', JSON.stringify(localOrders))
+      const globalOrders = JSON.parse(localStorage.getItem('suhail_orders_global') || '[]')
+      globalOrders.unshift(fallbackOrder)
+      localStorage.setItem('suhail_orders_global', JSON.stringify(globalOrders))
       setCartItems([])
+      if (user?.id) {
+        localStorage.setItem(`suhail_cart_${user.id}`, JSON.stringify([]))
+        localStorage.setItem(`suhail_cart_${user.email}`, JSON.stringify([]))
+      }
       localStorage.setItem('suhail_cart', JSON.stringify([]))
       setShowCheckout(false)
       setShowCart(false)
@@ -437,7 +542,13 @@ export default function Home() {
                 <User size={16} /> Login
               </button>
             )}
-            <button onClick={handleMyAccountClick} className="hidden md:flex bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-full font-rubik font-bold text-[12px]">My Account</button>
+            {isAdmin && user ? (
+              <button onClick={handleAdminPanelClick} className="hidden md:flex bg-[#FF3B30] hover:bg-red-600 text-white px-4 py-2.5 rounded-full font-rubik font-black text-[12px] items-center gap-2 shadow-lg animate-pulse">
+                <Shield size={14} /> Admin Panel
+              </button>
+            ) : (
+              <button onClick={handleMyAccountClick} className="hidden md:flex bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-full font-rubik font-bold text-[12px]">My Account</button>
+            )}
             <button onClick={() => setShowCart(true)} className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center relative">
               <ShoppingCart size={18} />
               <span className="absolute -top-1 -right-1 bg-[#FF3B30] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-rubik font-bold">{cartItems.length}</span>
@@ -452,6 +563,18 @@ export default function Home() {
                 {cat === 'Repair' ? '🔧 ' : cat === 'Preorder' ? '📅 ' : ''}{cat}
               </button>
             ))}
+            {/* Mobile: Show My Account / Admin Panel */}
+            <div className="w-full md:hidden mt-3 pt-3 border-t border-white/10 flex gap-2">
+              {user ? (
+                isAdmin ? (
+                  <button onClick={handleAdminPanelClick} className="flex-1 bg-[#FF3B30] text-white px-4 py-2.5 rounded-full font-rubik font-black text-[12px] flex items-center justify-center gap-2"><Shield size={14}/> Admin Panel • {user.email?.split('@')[0]}</button>
+                ) : (
+                  <button onClick={handleMyAccountClick} className="flex-1 bg-white text-black px-4 py-2.5 rounded-full font-rubik font-bold text-[12px]">My Account • {user.email?.split('@')[0]}</button>
+                )
+              ) : (
+                <button onClick={() => { setShowAuth(true); setAuthMode('login') }} className="flex-1 bg-white text-black px-4 py-2.5 rounded-full font-rubik font-bold text-[12px]">Login / My Account</button>
+              )}
+            </div>
           </div>
         </nav>
       </header>

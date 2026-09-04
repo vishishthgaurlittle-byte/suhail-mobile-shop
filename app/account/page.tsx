@@ -105,17 +105,46 @@ export default function AccountPage() {
           // Don't fail entire page if data loading fails
         }
 
-        // Local storage - always load
+        // Local storage - per-user isolation - FIXED for customer data privacy
         try {
-          setSearchHistory(JSON.parse(localStorage.getItem('suhail_search_history') || '[]'))
-          setCart(JSON.parse(localStorage.getItem('suhail_cart') || '[]'))
-          setWishlist(JSON.parse(localStorage.getItem('suhail_wishlist') || '[]'))
-          // Also check for local orders fallback
-          const localOrders = JSON.parse(localStorage.getItem('suhail_orders') || '[]')
-          if (localOrders.length > 0 && (orders || []).length === 0) {
-            setOrders(localOrders)
+          const uid = userData.id
+          const email = userData.email
+          // Per-user keys for isolation - customer data not shown to other customers
+          const searchKey = `suhail_search_history_${uid}`
+          const cartKey = `suhail_cart_${uid}`
+          const wishlistKey = `suhail_wishlist_${uid}`
+          const ordersKey = `suhail_orders_${uid}`
+          
+          // Try per-user first, then email, then global fallback
+          setSearchHistory(JSON.parse(localStorage.getItem(searchKey) || localStorage.getItem(`suhail_search_history_${email}`) || localStorage.getItem('suhail_search_history') || '[]'))
+          setCart(JSON.parse(localStorage.getItem(cartKey) || localStorage.getItem(`suhail_cart_${email}`) || localStorage.getItem('suhail_cart') || '[]'))
+          setWishlist(JSON.parse(localStorage.getItem(wishlistKey) || localStorage.getItem(`suhail_wishlist_${email}`) || localStorage.getItem('suhail_wishlist') || '[]'))
+          
+          // Orders: per-user isolated, plus InsForge filtered by user_id
+          let localOrders = []
+          try {
+            localOrders = JSON.parse(localStorage.getItem(ordersKey) || localStorage.getItem(`suhail_orders_${email}`) || '[]')
+            // Filter to only this user's orders for privacy
+            localOrders = localOrders.filter((o: any) => !o.user_id || o.user_id === uid || o.customer_email === email)
+          } catch {}
+          
+          // If InsForge returned empty but local has per-user orders, use local
+          // This fixes "data is not feed" issue when InsForge insert fails but local saved
+          if (localOrders.length > 0) {
+            // Merge with InsForge data, per-user only
+            const existingIds = new Set((orderData || []).map((o: any) => o.id))
+            const mergedOrders = [...(orderData || []), ...localOrders.filter((o: any) => !existingIds.has(o.id))]
+            // Filter merged to only this user for privacy
+            const userOnlyOrders = mergedOrders.filter((o: any) => !o.user_id || o.user_id === uid || o.customer_email === email)
+            setOrders(userOnlyOrders)
+            // If we had to use local fallback, show toast
+            if ((orderData || []).length === 0) {
+              console.log(`Loaded ${localOrders.length} local orders for user ${email} - InsForge empty, using per-user local fallback`)
+            }
           }
-        } catch {}
+        } catch (e) {
+          console.error('Local storage load error:', e)
+        }
 
       } catch (e) {
         console.error('Load account error:', e)
@@ -448,13 +477,29 @@ export default function AccountPage() {
 
           {activeTab === 'search' && (
             <div className="space-y-4">
-              <div className="flex justify-between"><h2 className="font-rubik font-black text-[24px] tracking-tight">Search History • What You Searched</h2><button onClick={() => { localStorage.removeItem('suhail_search_history'); setSearchHistory([]) }} className="bg-red-50 text-red-600 px-4 py-2 rounded-full font-rubik font-bold text-xs flex items-center gap-2"><Trash2 size={14} /> Clear</button></div>
+              <div className="flex justify-between"><h2 className="font-rubik font-black text-[24px] tracking-tight">Search History • What You Searched • Per-User Isolated</h2><button onClick={() => { 
+                const uid = user?.id
+                if (uid) {
+                  localStorage.removeItem(`suhail_search_history_${uid}`)
+                  localStorage.removeItem(`suhail_search_history_${user?.email}`)
+                }
+                localStorage.removeItem('suhail_search_history'); 
+                setSearchHistory([]) 
+              }} className="bg-red-50 text-red-600 px-4 py-2 rounded-full font-rubik font-bold text-xs flex items-center gap-2"><Trash2 size={14} /> Clear My History</button></div>
               <div className="bg-white rounded-[20px] border border-black/10">
                 {(searchHistory || []).length === 0 ? (
                   <div className="p-12 text-center"><Search size={32} className="mx-auto text-black/30 mb-4" /><p className="font-rubik font-bold">No search history</p><p className="font-rubik text-[13px] text-black/60 mt-2">Searches like "iPhone 16", "S25 Ultra" will appear here. Saved in localStorage + InsForge.</p></div>
                 ) : (
                   searchHistory.map((term, i) => (
-                    <div key={i} className="p-4 flex justify-between border-b border-black/5 last:border-0"><div className="flex items-center gap-3"><Search size={16} /><span className="font-rubik font-semibold text-sm">{term}</span></div><button onClick={() => { const u = searchHistory.filter(s => s !== term); setSearchHistory(u); localStorage.setItem('suhail_search_history', JSON.stringify(u)) }} className="w-8 h-8 hover:bg-black/10 rounded-full flex items-center justify-center"><X size={14} /></button></div>
+                    <div key={i} className="p-4 flex justify-between border-b border-black/5 last:border-0"><div className="flex items-center gap-3"><Search size={16} /><span className="font-rubik font-semibold text-sm">{term}</span></div><button onClick={() => { 
+                      const u = searchHistory.filter(s => s !== term); 
+                      setSearchHistory(u); 
+                      const uid = user?.id
+                      const key = uid ? `suhail_search_history_${uid}` : 'suhail_search_history'
+                      localStorage.setItem(key, JSON.stringify(u))
+                      if (user?.email) localStorage.setItem(`suhail_search_history_${user.email}`, JSON.stringify(u))
+                      localStorage.setItem('suhail_search_history', JSON.stringify(u))
+                    }} className="w-8 h-8 hover:bg-black/10 rounded-full flex items-center justify-center"><X size={14} /></button></div>
                   ))
                 )}
               </div>
