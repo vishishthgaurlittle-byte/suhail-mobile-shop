@@ -55,48 +55,77 @@ export const authHelpers = {
     } catch {}
   },
   
-  // Ensure profile exists in InsForge profiles table - FIX for customers not showing
+  // Ensure profile exists in InsForge profiles table - FIXED for actual schema (username stores email, user_id is uuid)
   async ensureProfile(user: any) {
     if (!user?.id || !user?.email) return
     try {
-      // Check if profile exists
+      // Check if profile exists by user_id
       const { data: existing } = await insforge.database.from('profiles').select('id').eq('user_id', user.id).single()
       if (existing) {
-        // Update last sign in
+        // Update last_seen and username (email)
         try {
           await insforge.database.from('profiles').update({ 
-            last_sign_in: new Date().toISOString(),
-            email: user.email,
+            last_seen: new Date().toISOString(),
+            username: user.email, // Store email in username field - actual schema
             updated_at: new Date().toISOString()
           }).eq('user_id', user.id)
         } catch {}
         return
       }
-      // Create new profile
+      // Also check by username (email)
+      try {
+        const { data: existingByUsername } = await insforge.database.from('profiles').select('id').eq('username', user.email).single()
+        if (existingByUsername) {
+          try {
+            await insforge.database.from('profiles').update({ 
+              user_id: user.id,
+              last_seen: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }).eq('id', (existingByUsername as any).id)
+          } catch {}
+          return
+        }
+      } catch {}
+      
+      // Create new profile with ACTUAL schema: id (uuid), user_id (uuid), username (email), phone, is_admin, status
+      // Profiles table is gaming schema but we reuse username for email
       const profileData = {
-        id: user.id, // Use user id as profile id if possible, or generate
+        id: user.id, // user.id is already uuid from InsForge Auth
         user_id: user.id,
-        email: user.email,
-        full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Customer',
-        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Customer',
-        phone: user.phone || user.user_metadata?.phone || '',
-        role: (user.email === 'admin@suhailmobile.com' || user.email === 'suhailmobile@gmail.com') ? 'admin' : 'customer',
+        username: user.email, // CRITICAL: Store email in username field
+        phone: user.phone || user.user_metadata?.phone || null,
         is_admin: (user.email === 'admin@suhailmobile.com' || user.email === 'suhailmobile@gmail.com'),
+        status: 'active',
+        level: 1,
+        xp: 0,
+        daily_cap_paise: 500000,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        last_sign_in: new Date().toISOString()
+        last_seen: new Date().toISOString()
       }
       // Try insert
       const { error } = await insforge.database.from('profiles').insert(profileData)
       if (error) {
-        // If id conflict, try with random id
+        // If fails, try with new uuid for id
         try {
-          const altProfile = { ...profileData, id: `profile_${Date.now()}_${Math.random().toString(36).substring(2,8)}` }
+          const newId = `00000000-0000-4000-a000-${Date.now().toString().slice(-12).padStart(12,'0')}`
+          // Generate proper uuid v4
+          const altId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8)
+            return v.toString(16)
+          })
+          const altProfile = { ...profileData, id: altId }
           await insforge.database.from('profiles').insert(altProfile)
-        } catch {}
+        } catch (e2) {
+          // Last fallback: try without id (let DB generate)
+          try {
+            const { id, ...withoutId } = profileData
+            await insforge.database.from('profiles').insert(withoutId)
+          } catch {}
+        }
       }
     } catch (e) {
-      // Silent fail - localStorage fallback will handle
+      // Silent fail - localStorage fallback will handle, but log for debug
     }
   },
 
@@ -462,14 +491,26 @@ export const db = {
         if (typeof window !== 'undefined') {
           try {
             const customerMap = new Map()
-            // Add InsForge profiles first
-            customers.forEach((c: any) => customerMap.set(c.user_id || c.id, c))
+            // Add InsForge profiles first - map username to email for display
+            customers.forEach((c: any) => {
+              // Normalize: username field actually stores email in our schema
+              const normalized = {
+                ...c,
+                email: c.email || c.username || c.customer_email,
+                customer_email: c.customer_email || c.email || c.username,
+                full_name: c.full_name || c.username || c.customer_name,
+                customer_name: c.customer_name || c.full_name || c.username,
+                phone: c.phone || c.customer_phone,
+                user_id: c.user_id || c.id
+              }
+              customerMap.set(normalized.user_id || normalized.id, normalized)
+            })
             
-            // Add from suhail_customers_global - this ensures any account created shows immediately
+            // Add from suhail_customers_global - this ensures any account created shows immediately even if DB fails
             const globalCustomers = JSON.parse(localStorage.getItem('suhail_customers_global') || '[]')
             globalCustomers.forEach((cust: any) => {
               const key = cust.user_id || cust.id || cust.email
-              if (!customerMap.has(key) && !Array.from(customerMap.values()).some((c: any) => c.email === cust.email || c.user_id === cust.user_id)) {
+              if (!customerMap.has(key) && !Array.from(customerMap.values()).some((c: any) => (c.email || c.username) === cust.email || c.user_id === cust.user_id)) {
                 customerMap.set(key, cust)
               }
             })

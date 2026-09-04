@@ -538,9 +538,12 @@ export default function AdminPage() {
             <tbody>
               {customers.filter((c: any) => {
                 const q = searchQuery.toLowerCase()
-                return !q || (c.email?.toLowerCase().includes(q) || c.customer_email?.toLowerCase().includes(q) || c.customer_name?.toLowerCase().includes(q) || c.full_name?.toLowerCase().includes(q) || c.phone?.includes(q) || c.customer_phone?.includes(q))
+                const email = (c.email || c.username || c.customer_email || '').toLowerCase()
+                const name = (c.customer_name || c.full_name || c.username || '').toLowerCase()
+                return !q || (email.includes(q) || name.includes(q) || (c.phone||'').includes(q) || (c.customer_phone||'').includes(q) || (c.username||'').toLowerCase().includes(q))
               }).map((customer: any, i) => {
-                const custOrders = orders.filter((o: any) => o.user_id === customer.user_id || o.user_id === customer.id || o.customer_email === customer.email || o.customer_email === customer.customer_email)
+                const custEmail = customer.email || customer.username || customer.customer_email
+                const custOrders = orders.filter((o: any) => o.user_id === customer.user_id || o.user_id === customer.id || o.customer_email === custEmail || o.customer_email === customer.email || o.customer_email === customer.username)
                 const totalSpent = custOrders.reduce((s: number, o: any) => s + (parseInt(o.total_amount) || 0), 0)
                 return (
                   <tr key={customer.id || i} className="border-b border-black/5 hover:bg-[#F5F5F7]/50">
@@ -549,8 +552,8 @@ export default function AdminPage() {
                       <p className="font-rubik text-[10px] text-black/50">{customer.is_local ? 'Local Order Customer' : 'InsForge Profile'}</p>
                     </td>
                     <td className="p-4">
-                      <p className="font-rubik font-bold text-[13px]">{customer.full_name || customer.customer_name || customer.display_name || 'Customer'}</p>
-                      <p className="font-rubik text-[11px] text-black/70">{customer.email || customer.customer_email || 'No email'}</p>
+                      <p className="font-rubik font-bold text-[13px]">{customer.full_name || customer.customer_name || customer.display_name || customer.username?.split('@')[0] || 'Customer'}</p>
+                      <p className="font-rubik text-[11px] text-black/70">{customer.email || customer.username || customer.customer_email || 'No email'}</p>
                       <p className="font-rubik text-[11px] text-black/60">{customer.phone || customer.customer_phone || ''}</p>
                     </td>
                     <td className="p-4">
@@ -564,7 +567,7 @@ export default function AdminPage() {
                     </td>
                     <td className="p-4 flex justify-end">
                       {!customer.is_admin && (
-                        <button onClick={() => handleDeleteCustomer(customer.user_id || customer.id, customer.email || customer.customer_email)} className="bg-red-500 text-white px-3 py-2 rounded-full text-[11px] font-bold flex items-center gap-1 hover:bg-red-600"><UserX size={12} /> Delete</button>
+                        <button onClick={() => handleDeleteCustomer(customer.user_id || customer.id, customer.email || customer.username || customer.customer_email)} className="bg-red-500 text-white px-3 py-2 rounded-full text-[11px] font-bold flex items-center gap-1 hover:bg-red-600"><UserX size={12} /> Delete</button>
                       )}
                       {customer.is_admin && <span className="font-rubik text-[10px] text-black/40">Protected</span>}
                     </td>

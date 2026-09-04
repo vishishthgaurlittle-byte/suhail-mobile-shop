@@ -400,7 +400,7 @@ export default function Home() {
 
       const orderId = `ORD-${Date.now()}`
       
-      // Create order in InsForge
+      // Create order in InsForge - FIXED: shipping_address must be JSONB object, not string
       const orderData = {
         id: orderId,
         user_id: user.id,
@@ -408,7 +408,7 @@ export default function Home() {
         customer_name: customerInfo.name || user.email?.split('@')[0] || 'Customer',
         customer_email: user.email,
         customer_phone: customerInfo.phone,
-        shipping_address: customerInfo.address,
+        shipping_address: { address: customerInfo.address, full: customerInfo.address, city: 'Raebareli', pincode: '229001' },
         total_amount: cartTotal,
         subtotal: cartTotal,
         delivery_type: deliveryType,
@@ -432,7 +432,26 @@ export default function Home() {
         updated_at: new Date().toISOString()
       }
 
-      const { error } = await insforge.database.from('orders').insert(orderData)
+      // Use db.orders.create which handles shipping_address fix + fallback - FIX for orders not showing
+      let error: any = null
+      let dbResult: any = null
+      try {
+        dbResult = await db.orders.create(orderData)
+      } catch (e: any) {
+        error = e
+        // Fallback direct insert with proper JSONB
+        try {
+          const directRes = await insforge.database.from('orders').insert(orderData) as any
+          if (!directRes.error) {
+            error = null
+            dbResult = directRes.data
+          } else {
+            error = directRes.error
+          }
+        } catch (e2: any) {
+          error = e2
+        }
+      }
       if (error) {
         // If table structure different, try alternative
         // Order insert error handled via localStorage fallback
