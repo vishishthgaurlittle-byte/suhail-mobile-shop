@@ -87,14 +87,17 @@ export const authHelpers = {
         }
       } catch {}
       
-      // Create new profile with ACTUAL schema: id (uuid), user_id (uuid), username (email), phone, is_admin, status
-      // Profiles table is gaming schema but we reuse username for email
+      // Create new profile with FIXED schema - now has email columns after migration 20260904000021
       const profileData = {
         id: user.id, // user.id is already uuid from InsForge Auth
         user_id: user.id,
-        username: user.email, // CRITICAL: Store email in username field
+        username: user.email, // Store email in username for compatibility
+        email: user.email, // NEW: Now email column exists after migration
+        full_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Customer',
+        display_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Customer',
         phone: user.phone || user.user_metadata?.phone || null,
         is_admin: (user.email === 'admin@suhailmobile.com' || user.email === 'suhailmobile@gmail.com'),
+        role: (user.email === 'admin@suhailmobile.com' || user.email === 'suhailmobile@gmail.com') ? 'admin' : 'customer',
         status: 'active',
         level: 1,
         xp: 0,
@@ -365,27 +368,25 @@ export const db = {
     }
   },
 
-  // Orders - REAL DATA ONLY - Fixed for approval + customer isolation
+  // Orders - REAL DATA ONLY - FIXED for cross-browser consistency - DB is source of truth
   orders: {
     async getAll() {
       try {
-        // Try with order_items join first
+        // Fetch from InsForge DB - source of truth for admin panel consistency
         let { data, error } = await insforge.database.from('orders').select('*').order('created_at', { ascending: false })
         if (error) {
-          // Fallback simple select
           const res = await insforge.database.from('orders').select().order('created_at', { ascending: false })
           data = res.data
           error = res.error
         }
         if (error) throw error
         let result = data || []
-        // Also check localStorage global for orders that failed InsForge insert (for admin view)
-        if (typeof window !== 'undefined') {
+        // For admin consistency across browsers, use DB only if DB has data
+        // Only merge localStorage if DB is empty (fallback for offline)
+        if (result.length === 0 && typeof window !== 'undefined') {
           try {
             const globalLocal = JSON.parse(localStorage.getItem('suhail_orders_global') || '[]')
-            const existingIds = new Set(result.map((o: any) => o.id))
-            const merged = [...result, ...globalLocal.filter((o: any) => !existingIds.has(o.id))]
-            result = merged
+            result = globalLocal
           } catch {}
         }
         return result
@@ -487,33 +488,47 @@ export const db = {
         
         let customers = profilesData || []
         
-        // Merge with localStorage customers for those created locally - CRITICAL FIX for customers tab
+        // FIXED: For admin consistency across browsers, use DB as primary, localStorage as fallback only if DB empty
+        // This fixes "some browser shows 1 account, some shows 13"
         if (typeof window !== 'undefined') {
           try {
             const customerMap = new Map()
-            // Add InsForge profiles first - map username to email for display
+            // Add InsForge profiles first - map username to email for display - DB is source of truth for admin
             customers.forEach((c: any) => {
-              // Normalize: username field actually stores email in our schema
+              // Normalize: handle both old schema (username=email) and new schema (email column)
               const normalized = {
                 ...c,
                 email: c.email || c.username || c.customer_email,
                 customer_email: c.customer_email || c.email || c.username,
-                full_name: c.full_name || c.username || c.customer_name,
-                customer_name: c.customer_name || c.full_name || c.username,
-                phone: c.phone || c.customer_phone,
-                user_id: c.user_id || c.id
+                full_name: c.full_name || c.display_name || c.username?.split('@')[0] || c.customer_name || 'Customer',
+                customer_name: c.customer_name || c.full_name || c.display_name || c.username?.split('@')[0] || 'Customer',
+                phone: c.phone || c.customer_phone || '',
+                user_id: c.user_id || c.id,
+                id: c.id || c.user_id,
+                is_admin: c.is_admin || false,
+                role: c.role || (c.is_admin ? 'admin' : 'customer'),
+                created_at: c.created_at || new Date().toISOString()
               }
-              customerMap.set(normalized.user_id || normalized.id, normalized)
+              // Only add if email looks valid and not a Player gaming account (unless admin)
+              if (normalized.email && (normalized.email.includes('@') || normalized.is_admin)) {
+                // Filter out Player gaming accounts that don't have email - they are from game, not shop
+                if (!normalized.email.startsWith('Player') || normalized.is_admin || normalized.email.includes('@')) {
+                  customerMap.set(normalized.user_id || normalized.id, normalized)
+                }
+              }
             })
             
-            // Add from suhail_customers_global - this ensures any account created shows immediately even if DB fails
-            const globalCustomers = JSON.parse(localStorage.getItem('suhail_customers_global') || '[]')
-            globalCustomers.forEach((cust: any) => {
-              const key = cust.user_id || cust.id || cust.email
-              if (!customerMap.has(key) && !Array.from(customerMap.values()).some((c: any) => (c.email || c.username) === cust.email || c.user_id === cust.user_id)) {
-                customerMap.set(key, cust)
-              }
-            })
+            // If DB has customers, use DB only for consistency across browsers (admin panel)
+            // Only use localStorage if DB is empty (fallback)
+            if (customerMap.size === 0) {
+              const globalCustomers = JSON.parse(localStorage.getItem('suhail_customers_global') || '[]')
+              globalCustomers.forEach((cust: any) => {
+                const key = cust.user_id || cust.id || cust.email
+                if (!customerMap.has(key)) {
+                  customerMap.set(key, cust)
+                }
+              })
+            }
             
             // Also scan localStorage for customer emails from orders (fallback)
             const globalOrders = JSON.parse(localStorage.getItem('suhail_orders_global') || '[]')
