@@ -90,6 +90,12 @@ export default function Home() {
       } catch (err) {
         console.error('Auth check failed:', err)
       }
+      
+      // FIXED: Load cart from localStorage - was missing after auth fix
+      try {
+        const savedCart = JSON.parse(localStorage.getItem('suhail_cart') || '[]')
+        setCartItems(savedCart)
+      } catch {}
     }
     checkUser()
     
@@ -97,6 +103,10 @@ export default function Home() {
     const handleStorageChange = () => {
       const localUser = authHelpers.getUserFromLocal()
       if (localUser) setUser(localUser)
+      try {
+        const savedCart = JSON.parse(localStorage.getItem('suhail_cart') || '[]')
+        setCartItems(savedCart)
+      } catch {}
     }
     window.addEventListener('storage', handleStorageChange)
     return () => window.removeEventListener('storage', handleStorageChange)
