@@ -37,16 +37,16 @@ export default function AdminLogin() {
 
       if (!isAdmin) {
         if (email === 'admin@suhailmobile.com') {
-          setMessage('✅ Admin verified! Redirecting to My Account (Admin inside)...')
-          setTimeout(() => window.location.href = '/account', 1000)
+          setMessage('✅ Admin verified! Redirecting to Admin Panel directly...')
+          setTimeout(() => window.location.href = '/admin', 1000)
           return
         } else {
           throw new Error('Access denied - Not an admin. Only admin@suhailmobile.com can access admin panel.')
         }
       }
 
-      setMessage('✅ Admin login successful! Fixed auth - No expiry - Redirecting...')
-      setTimeout(() => window.location.href = '/account', 1000)
+      setMessage('✅ Admin login successful! Redirecting to Admin Panel...')
+      setTimeout(() => window.location.href = '/admin', 1000)
 
     } catch (err: any) {
       console.error('Admin login error:', err)
