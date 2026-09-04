@@ -2,7 +2,7 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react'
 import { Search, User, Heart, ShoppingCart, Truck, Shield, MessageCircle, CreditCard, Star, Menu, X, LogOut, Sparkles, Zap, Award, ArrowRight, Check, Wrench, Calendar, Package, Phone, MapPin, Instagram, Clock, Gift, Smartphone, Upload, QrCode, Building2, AlertTriangle } from 'lucide-react'
-import { insforge, db } from '@/lib/insforge'
+import { insforge, db, authHelpers } from '@/lib/insforge'
 import { PAYMENT_MOCK_DATA, validateUTR, validateScreenshot, generateUPILink } from '@/lib/payment'
 
 // Real products available in Raebareli local market - Latest 2026
@@ -74,19 +74,58 @@ export default function Home() {
   useEffect(() => {
     async function checkUser() {
       try {
-        const { data } = await insforge.auth.getCurrentUser()
-        if (data?.user) setUser(data.user)
-      } catch {}
-      // Load cart from localStorage
-      const savedCart = JSON.parse(localStorage.getItem('suhail_cart') || '[]')
-      setCartItems(savedCart)
+        // FIXED: Use robust auth with localStorage fallback - prevents expiry on navigation
+        const userData = await authHelpers.getCurrentUserRobust()
+        if (userData) {
+          setUser(userData)
+          console.log('Auth restored:', userData.email)
+        }
+        
+        // Also check URL for login required
+        const urlParams = new URLSearchParams(window.location.search)
+        if (urlParams.get('login') === 'required' && !userData) {
+          setShowAuth(true)
+          setAuthMode('login')
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err)
+      }
     }
     checkUser()
+    
+    // Listen for storage changes (if user logs in/out in another tab)
+    const handleStorageChange = () => {
+      const localUser = authHelpers.getUserFromLocal()
+      if (localUser) setUser(localUser)
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
   const showToastMessage = (msg: string) => {
     setShowToast(msg)
     setTimeout(() => setShowToast(''), 4000)
+  }
+
+  const handleMyAccountClick = () => {
+    // FIXED: Don't logout when clicking My Account - check auth properly
+    const localUser = authHelpers.getUserFromLocal()
+    if (!user && !localUser) {
+      // Not logged in - show login modal instead of navigating
+      setShowAuth(true)
+      setAuthMode('login')
+      showToastMessage('Please login to access My Account')
+      return
+    }
+    // Logged in - navigate to account
+    window.location.href = '/account'
+  }
+
+  const handleLogout = async () => {
+    // FIXED: Proper logout with local cleanup
+    await authHelpers.signOutRobust()
+    setUser(null)
+    showToastMessage('Logged out successfully')
   }
 
   const addToCart = (product: any) => {
@@ -125,9 +164,10 @@ export default function Home() {
       const { data, error } = await insforge.auth.signInWithPassword({ email, password })
       if (error) throw error
       if (data?.user) {
+        authHelpers.saveUserToLocal(data.user)
         setUser(data.user)
         setShowAuth(false)
-        showToastMessage(`Welcome back! 🎉`)
+        showToastMessage(`Welcome back! 🎉 ${data.user.email}`)
       }
     } catch (err: any) {
       if (err.message?.includes('verification')) {
@@ -162,6 +202,7 @@ export default function Home() {
       const { data, error } = await insforge.auth.verifyEmail({ email, otp })
       if (error) throw error
       if (data?.user) {
+        authHelpers.saveUserToLocal(data.user)
         setUser(data.user)
         setShowAuth(false)
         showToastMessage('Verified! Welcome 🎉')
@@ -379,14 +420,14 @@ export default function Home() {
               <div className="flex items-center gap-2 bg-white/10 rounded-full pl-1 pr-3 py-1">
                 <div className="w-8 h-8 bg-white text-black rounded-full flex items-center justify-center font-rubik font-bold">{(user.email || 'U')[0].toUpperCase()}</div>
                 <span className="hidden md:block font-rubik font-semibold text-[13px]">{user.email?.split('@')[0]}</span>
-                <button onClick={async () => { await insforge.auth.signOut(); setUser(null) }} className="p-1 hover:bg-white/10 rounded-full"><LogOut size={14} /></button>
+                <button onClick={handleLogout} className="p-1 hover:bg-white/10 rounded-full" title="Logout"><LogOut size={14} /></button>
               </div>
             ) : (
               <button onClick={() => { setShowAuth(true); setAuthMode('login') }} className="bg-white text-black px-5 py-2.5 rounded-full font-rubik font-bold text-[13px] hover:bg-gray-100 flex items-center gap-2">
                 <User size={16} /> Login
               </button>
             )}
-            <button onClick={() => window.location.href = '/account'} className="hidden md:flex bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-full font-rubik font-bold text-[12px]">My Account</button>
+            <button onClick={handleMyAccountClick} className="hidden md:flex bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-full font-rubik font-bold text-[12px]">My Account</button>
             <button onClick={() => setShowCart(true)} className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center relative">
               <ShoppingCart size={18} />
               <span className="absolute -top-1 -right-1 bg-[#FF3B30] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-rubik font-bold">{cartItems.length}</span>

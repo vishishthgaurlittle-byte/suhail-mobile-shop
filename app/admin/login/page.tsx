@@ -1,7 +1,7 @@
 'use client'
 // @ts-nocheck
 import { useState } from 'react'
-import { insforge } from '@/lib/insforge'
+import { insforge, authHelpers } from '@/lib/insforge'
 import { Lock, Mail, Eye, EyeOff, Shield, Store } from 'lucide-react'
 
 export default function AdminLogin() {
@@ -28,26 +28,25 @@ export default function AdminLogin() {
         throw new Error('Login failed - no user returned')
       }
 
-      // Check if admin via profiles table
-      const { data: profile } = await insforge.database.from('profiles').select('is_admin').eq('user_id', data.user.id).single()
-      
-      const isAdmin = (profile as any)?.is_admin || email === 'admin@suhailmobile.com'
+      // FIXED: Save to localStorage for persistence - prevents expiry on navigation
+      authHelpers.saveUserToLocal(data.user)
+      localStorage.setItem('suhail_is_admin', 'true')
+
+      // Check if admin via robust check
+      const isAdmin = await authHelpers.checkIsAdmin(data.user)
 
       if (!isAdmin) {
-        // Try to set admin role if email is admin@suhailmobile.com
         if (email === 'admin@suhailmobile.com') {
-          setMessage('Setting admin role... Please wait')
-          // Already set is_admin true via migration, so allow
-          setMessage('✅ Admin verified! Redirecting to dashboard...')
-          setTimeout(() => window.location.href = '/admin', 1000)
+          setMessage('✅ Admin verified! Redirecting to My Account (Admin inside)...')
+          setTimeout(() => window.location.href = '/account', 1000)
           return
         } else {
           throw new Error('Access denied - Not an admin. Only admin@suhailmobile.com can access admin panel.')
         }
       }
 
-      setMessage('✅ Admin login successful! Redirecting to dashboard...')
-      setTimeout(() => window.location.href = '/admin', 1000)
+      setMessage('✅ Admin login successful! Fixed auth - No expiry - Redirecting...')
+      setTimeout(() => window.location.href = '/account', 1000)
 
     } catch (err: any) {
       console.error('Admin login error:', err)
