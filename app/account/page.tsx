@@ -245,7 +245,7 @@ export default function AccountPage() {
             <div className="bg-black text-white rounded-[20px] p-5">
               <h3 className="font-rubik font-bold text-[14px]">Need Help?</h3>
               <p className="font-rubik text-[12px] text-white/60 mt-2">Suhail Mobile Shop, Chandapur Kothi, Raebareli. Open 10AM-9:30PM.</p>
-              <p className="font-rubik text-[12px] mt-3">📞 +91 98765 43210 • WhatsApp 24/7 • Instagram @suhail_mobile_shop_raebareli</p>
+              <p className="font-rubik text-[12px] mt-3">📞 +91 8299384658 • WhatsApp 24/7 • Instagram @suhail_mobile_shop_raebareli</p>
             </div>
           )}
         </aside>

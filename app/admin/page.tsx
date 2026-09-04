@@ -304,7 +304,7 @@ export default function AdminPage() {
               <div className="mt-4 space-y-3 font-rubik text-sm">
                 <div className="flex justify-between"><span>Shop Name</span><span className="font-bold">Suhail Mobile Shop</span></div>
                 <div className="flex justify-between"><span>Address</span><span className="font-bold text-xs">Chandapur Kothi, Raebareli</span></div>
-                <div className="flex justify-between"><span>Phone</span><span className="font-bold">+91 98765 43210</span></div>
+                <div className="flex justify-between"><span>Phone</span><span className="font-bold">+91 8299384658</span></div>
                 <div className="flex justify-between"><span>Font</span><span className="font-bold">Rubik Sans Serif</span></div>
                 <div className="flex justify-between"><span>Backend</span><span className="font-bold">100% InsForge Only</span></div>
                 <div className="flex justify-between"><span>Auth</span><span className="font-bold">Google + Email OTP</span></div>

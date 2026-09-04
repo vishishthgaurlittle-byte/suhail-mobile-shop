@@ -190,7 +190,7 @@ export default function Home() {
         <span className="inline-flex items-center gap-2">
           <Sparkles size={14} className="text-yellow-400" />
           <span className="hidden md:inline font-rubik">Weekend Dhamaka: Up to 50% OFF • Free Delivery Raebareli • </span>
-          <span className="font-rubik font-bold">📞 +91 98765 43210 • Chandapur Kothi • Open 10AM-9:30PM • Rubik Font • InsForge Only</span>
+          <span className="font-rubik font-bold">📞 +91 8299384658 • Chandapur Kothi • Open 10AM-9:30PM • Rubik Font • InsForge Only</span>
         </span>
       </div>
 
@@ -531,7 +531,7 @@ export default function Home() {
 
       {showToast && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-white px-6 py-3 rounded-full font-rubik font-bold text-[13px] shadow-2xl z-50">{showToast}</div>}
 
-      <a href="https://wa.me/919876543210" target="_blank" className="fixed bottom-6 right-6 bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition z-30"><MessageCircle size={28} /></a>
+      <a href="https://wa.me/918299384658" target="_blank" className="fixed bottom-6 right-6 bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition z-30"><MessageCircle size={28} /></a>
     </div>
   )
 }
