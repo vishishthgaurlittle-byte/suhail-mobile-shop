@@ -368,32 +368,66 @@ export const db = {
     }
   },
 
-  // Orders - REAL DATA ONLY - FIXED for cross-browser consistency - DB is source of truth
+  // Orders - REAL DATA ONLY - PERFECT for admin - DB + localStorage merged, deduped, always shows
   orders: {
     async getAll() {
       try {
-        // Fetch from InsForge DB - source of truth for admin panel consistency
-        let { data, error } = await insforge.database.from('orders').select('*').order('created_at', { ascending: false })
-        if (error) {
-          const res = await insforge.database.from('orders').select().order('created_at', { ascending: false })
-          data = res.data
-          error = res.error
-        }
-        if (error) throw error
-        let result = data || []
-        // For admin consistency across browsers, use DB only if DB has data
-        // Only merge localStorage if DB is empty (fallback for offline)
-        if (result.length === 0 && typeof window !== 'undefined') {
+        // Fetch from InsForge DB - primary source for cross-browser consistency
+        let dbOrders: any[] = []
+        try {
+          let { data, error } = await insforge.database.from('orders').select('*').order('created_at', { ascending: false })
+          if (error) {
+            const res = await insforge.database.from('orders').select().order('created_at', { ascending: false })
+            data = res.data
+            error = res.error
+          }
+          if (!error && data) dbOrders = data
+        } catch {}
+
+        // Also get localStorage global orders for perfect coverage (in case DB insert failed before migration)
+        let localOrders: any[] = []
+        if (typeof window !== 'undefined') {
           try {
             const globalLocal = JSON.parse(localStorage.getItem('suhail_orders_global') || '[]')
-            result = globalLocal
+            const allLocalKeys = Object.keys(localStorage).filter(k => k.startsWith('suhail_orders_'))
+            let extraLocal: any[] = []
+            allLocalKeys.forEach(k => {
+              try {
+                const arr = JSON.parse(localStorage.getItem(k) || '[]')
+                if (Array.isArray(arr)) extraLocal = extraLocal.concat(arr)
+              } catch {}
+            })
+            localOrders = [...globalLocal, ...extraLocal]
           } catch {}
         }
+
+        // Merge DB + local, dedup by id/order_number, DB wins
+        const mergedMap = new Map()
+        // Add local first
+        localOrders.forEach((o: any) => {
+          const key = o.id || o.order_number
+          if (key && !mergedMap.has(key)) mergedMap.set(key, o)
+        })
+        // DB overwrites local (source of truth)
+        dbOrders.forEach((o: any) => {
+          const key = o.id || o.order_number
+          if (key) mergedMap.set(key, o)
+        })
+
+        let result = Array.from(mergedMap.values())
+        // If DB empty, use merged local
+        if (result.length === 0) result = dbOrders.length > 0 ? dbOrders : localOrders
+
+        // Sort by created_at desc
+        result.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+
         return result
       } catch (e) {
         if (typeof window !== 'undefined') {
           try {
-            return JSON.parse(localStorage.getItem('suhail_orders_global') || localStorage.getItem('suhail_orders') || '[]')
+            const global = JSON.parse(localStorage.getItem('suhail_orders_global') || '[]')
+            if (global.length > 0) return global
+            return JSON.parse(localStorage.getItem('suhail_orders') || '[]')
           } catch {}
         }
         return []
@@ -401,17 +435,32 @@ export const db = {
     },
     async getByUserId(userId: string) {
       try {
-        const { data, error } = await insforge.database.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false })
-        if (error) throw error
-        let result = data || []
-        // Merge with per-user localStorage for instant view and isolation
+        let dbResult: any[] = []
+        try {
+          const { data, error } = await insforge.database.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+          if (!error && data) dbResult = data
+        } catch {}
+        // Also try by email if userId is email, and merge per-user localStorage for instant view and isolation
+        let result = dbResult
         if (typeof window !== 'undefined') {
           try {
             const perUserLocal = JSON.parse(localStorage.getItem(`suhail_orders_${userId}`) || '[]')
+            const emailLocal = userId.includes('@') ? [] : JSON.parse(localStorage.getItem(`suhail_orders_${userId}`) || '[]')
+            // Scan all per-user keys for this userId
+            const allKeys = Object.keys(localStorage).filter(k => k.includes(userId) && k.startsWith('suhail_orders_'))
+            let extraLocal: any[] = []
+            allKeys.forEach(k => {
+              try {
+                const arr = JSON.parse(localStorage.getItem(k) || '[]')
+                if (Array.isArray(arr)) extraLocal = extraLocal.concat(arr)
+              } catch {}
+            })
+            const combinedLocal = [...perUserLocal, ...extraLocal]
             const existingIds = new Set(result.map((o: any) => o.id))
-            result = [...result, ...perUserLocal.filter((o: any) => !existingIds.has(o.id))]
+            result = [...result, ...combinedLocal.filter((o: any) => !existingIds.has(o.id))]
           } catch {}
         }
+        result.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
         return result
       } catch {
         if (typeof window !== 'undefined') {

@@ -13,6 +13,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isLoginPage, setIsLoginPage] = useState(false)
 
   useEffect(() => {
+    const syncHash = () => {
+      const hash = window.location.hash.replace('#', '') || 'dashboard'
+      setActiveTab(hash)
+    }
+    syncHash()
+    window.addEventListener('hashchange', syncHash)
+    return () => window.removeEventListener('hashchange', syncHash)
+  }, [])
+
+  useEffect(() => {
     const path = window.location.pathname
     if (path.includes('/admin/login')) {
       setIsLoginPage(true)
@@ -62,8 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const menu = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, desc: 'Sales, Orders, Stock' },
     { id: 'products', label: 'Products', icon: Package, desc: 'Real Phones - Add/Edit/Delete' },
-    { id: 'orders', label: 'Orders', icon: ShoppingCart, desc: 'Manage Orders, Status' },
-    { id: 'customers', label: 'Customers', icon: Users, desc: 'User List, Search' },
+    { id: 'orders', label: 'Orders', icon: ShoppingCart, desc: 'All Orders • UTR + Proof • Perfect' },
     { id: 'banners', label: 'Banners', icon: Image, desc: 'Hero, Offers' },
     { id: 'brands', label: 'Brands', icon: Tag, desc: 'Apple, Samsung etc' },
     { id: 'categories', label: 'Categories', icon: Layers, desc: 'Smartphones, Accessories' },
